@@ -3,6 +3,7 @@ import process from 'node:process'
 import { inspect } from 'node:util'
 import byteSize from 'byte-size'
 import clipboard from 'clipboardy'
+import { get_encoding } from 'tiktoken'
 import { YankConfig } from './config.js'
 import { processFiles } from './file-processor.js'
 import { generateOutput } from './lib.js'
@@ -34,10 +35,22 @@ async function main() {
 		if (config.stats) {
 			const totalLines = files.reduce((acc, file) => acc + file.lineCount, 0)
 			const size = byteSize(Buffer.byteLength(output, 'utf-8'))
+
 			console.error('---')
+			console.error(`Size: ${size}`)
 			console.error(`Files: ${files.length}`)
 			console.error(`Lines: ${totalLines.toLocaleString()}`)
-			console.error(`Size: ${size}`)
+			if (config.tokens) {
+				let tokenCount = 0
+				const encoding = get_encoding('cl100k_base')
+				try {
+					tokenCount = encoding.encode(output).length
+				}
+				finally {
+					encoding.free()
+				}
+				console.error(`Tokens: ${tokenCount.toLocaleString()}`)
+			}
 		}
 	}
 	catch (error) {

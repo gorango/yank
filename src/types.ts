@@ -5,11 +5,12 @@ export interface ProcessedFile {
 }
 
 export interface YankConfigCtor {
+	clip: boolean
 	include: string[]
 	exclude: string[]
-	clip: boolean
 	fileTemplate: string
 	codeTemplate: string
 	stats: boolean
+	tokens: boolean
 	debug: boolean
 }

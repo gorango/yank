@@ -32,13 +32,14 @@ yank
 
 | Flag | Alias | Description | Default |
 | :--- | :--- | :--- | :--- |
-| `--config` | `-C` | Path to a custom configuration file. | |
+| `--clip` | `-c` | Send output to the system clipboard instead of `stdout`. | `false` |
 | `--include` | `-i` | Glob patterns for files to include. **Ignored if paths are provided directly.** | `**/*` |
 | `--exclude` | `-x` | Glob patterns to exclude. Appended to built-in defaults. | `[]` |
-| `--clip` | `-c` | Send output to the system clipboard instead of `stdout`. | `false` |
-| `--stats` | `-s` | Print summary statistics to `stderr`. | `false` |
 | `--name-template` | `-H` | Template for the file header. | `--- {filePath} ---` |
 | `--code-template` | `-B` | Template for the code block. | `\`\`\`{language}\n{content}\n\`\`\`` |
+| `--stats` | `-s` | Print summary statistics to `stderr`. | `false` |
+| `--tokens` | `-t` | Print number of tokens in `stats`. | `false` |
+| `--config` | `-C` | Path to a custom configuration file. | |
 | `--debug` | | Enable verbose debug logging. | `false` |
 | `--help` | `-h` | Show the help message. | |
 | `--version` | `-v` | Show the version number. | |

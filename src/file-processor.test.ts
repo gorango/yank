@@ -40,6 +40,7 @@ describe('processFiles', () => {
 		include: ['**/*'],
 		exclude: ['node_modules/**'],
 		debug: false,
+		tokens: false,
 	} as YankConfigCtor
 
 	it('should find, read, filter, and count lines correctly', async () => {

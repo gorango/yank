@@ -21,30 +21,44 @@ async function getPackageVersion(): Promise<string> {
 }
 
 export class YankConfig {
+	readonly clip: boolean
 	readonly include: string[]
 	readonly exclude: string[]
-	readonly clip: boolean
 	readonly fileTemplate: string
 	readonly codeTemplate: string
 	readonly stats: boolean
+	readonly tokens: boolean
 	readonly debug: boolean
 
 	private constructor(init: YankConfigCtor) {
+		this.clip = init.clip
 		this.include = init.include
 		this.exclude = init.exclude
-		this.clip = init.clip
 		this.fileTemplate = init.fileTemplate
 		this.codeTemplate = init.codeTemplate
 		this.stats = init.stats
+		this.tokens = init.tokens
 		this.debug = init.debug
 	}
 
 	public static async init(): Promise<YankConfig> {
 		const preParse = yargs(hideBin(process.argv))
+			.option('stats', {
+				alias: 's',
+				type: 'boolean',
+				description: 'Print summary stats.',
+				default: false,
+			})
+			.option('tokens', {
+				alias: 't',
+				type: 'boolean',
+				description: 'Add num tokens to stats.',
+				default: false,
+			})
 			.option('config', {
 				alias: 'C',
 				type: 'string',
-				describe: 'Path to a custom configuration file.',
+				description: 'Path to a custom config.',
 			})
 			.help(false)
 			.version(false)
@@ -83,53 +97,59 @@ export class YankConfig {
 
 		const argv = await yargs(hideBin(process.argv))
 			.usage('Usage: $0 [paths...] [options]')
+			.option('clip', {
+				alias: 'c',
+				type: 'boolean',
+				description: 'Output to clipboard.',
+				default: false,
+			})
 			.option('include', {
 				alias: 'i',
 				type: 'array',
 				string: true,
-				description: 'Glob patterns for files to include.',
+				description: 'Glob to include.',
 				default: ['**/*'],
 			})
 			.option('exclude', {
 				alias: 'x',
 				type: 'array',
 				string: true,
-				description: 'Glob patterns to exclude files (appended to defaults).',
+				description: 'Glob to exclude.',
 				default: [],
-			})
-			.option('clip', {
-				alias: 'c',
-				type: 'boolean',
-				description: 'Send output directly to the system clipboard.',
-				default: false,
-			})
-			.option('stats', {
-				alias: 's',
-				type: 'boolean',
-				description: 'Print summary statistics to stderr.',
-				default: false,
 			})
 			.option('file-template', {
 				alias: 'H',
 				type: 'string',
-				description: 'Template for the file header. Placeholders: {filePath}',
+				description: 'Template for header (var: {filePath})',
 				default: '--- {filePath} ---',
 			})
 			.option('code-template', {
 				alias: 'B',
 				type: 'string',
-				description: 'Template for the code block. Placeholders: {language}, {content}',
+				description: 'Template for body (vars: {language}, {content})',
 				default: '```{language}\n{content}\n```',
 			})
-			.option('debug', {
+			.option('stats', {
+				alias: 's',
 				type: 'boolean',
-				description: 'Enable debug output.',
+				description: 'Print summary stats.',
+				default: false,
+			})
+			.option('tokens', {
+				alias: 't',
+				type: 'boolean',
+				description: 'Add num tokens to stats.',
 				default: false,
 			})
 			.option('config', {
 				alias: 'C',
 				type: 'string',
-				description: 'Path to a custom configuration file.',
+				description: 'Path to a custom config.',
+			})
+			.option('debug', {
+				type: 'boolean',
+				description: 'Enable debug output.',
+				default: false,
 			})
 			.config(fileConfig)
 			.help()
@@ -169,12 +189,13 @@ export class YankConfig {
 		const excludes = [...DEFAULT_EXCLUDE_PATTERNS, binaryIgnorePattern, ...argv.exclude]
 
 		const config = new YankConfig({
+			clip: argv.clip,
 			include: includes,
 			exclude: excludes,
-			clip: argv.clip,
 			fileTemplate: argv.fileTemplate,
 			codeTemplate: argv.codeTemplate,
 			stats: argv.stats,
+			tokens: argv.tokens,
 			debug: argv.debug,
 		})
 
