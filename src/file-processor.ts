@@ -44,7 +44,8 @@ export async function processFiles(config: YankConfig): Promise<ProcessedFile[]>
 		try {
 			const content = await fs.readFile(absPath, 'utf-8')
 			const relPath = path.relative(process.cwd(), absPath).replace(/\\/g, '/')
-			return { relPath, content }
+			const lineCount = content.split('\n').length
+			return { relPath, content, lineCount }
 		}
 		catch (err) {
 			if (config.debug) {

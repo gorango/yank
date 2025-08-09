@@ -42,8 +42,8 @@ describe('processFiles', () => {
 		debug: false,
 	} as YankConfigCtor
 
-	it('should find, read, and filter files correctly', async () => {
-		virtualFs.set(`${MOCK_CWD}/src/main.ts`, 'const x = 1;')
+	it('should find, read, filter, and count lines correctly', async () => {
+		virtualFs.set(`${MOCK_CWD}/src/main.ts`, 'const x = 1;\nconst y = 2;')
 		virtualFs.set(`${MOCK_CWD}/package.json`, '{ "name": "test" }')
 		virtualFs.set(`${MOCK_CWD}/node_modules/dep/index.js`, 'module.exports = {};')
 
@@ -56,8 +56,12 @@ describe('processFiles', () => {
 		const processed = await processFiles(mockConfig)
 
 		expect(processed).toHaveLength(2)
+
 		expect(processed[0].relPath).toBe('package.json')
+		expect(processed[0].lineCount).toBe(1)
+
 		expect(processed[1].relPath).toBe('src/main.ts')
+		expect(processed[1].lineCount).toBe(2)
 	})
 
 	it('should respect .gitignore rules', async () => {

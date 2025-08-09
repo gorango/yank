@@ -4,8 +4,8 @@ import { generateOutput } from './lib'
 
 describe('generateOutput', () => {
 	const mockFiles: ProcessedFile[] = [
-		{ relPath: 'src/main.ts', content: 'console.log("hello");' },
-		{ relPath: 'README.md', content: '# My Project' },
+		{ relPath: 'src/main.ts', content: 'console.log("hello");', lineCount: 1 },
+		{ relPath: 'README.md', content: '# My Project\n\n- Point 1', lineCount: 3 },
 	]
 
 	it('should generate output using the default templates', () => {
@@ -24,6 +24,8 @@ console.log("hello");
 --- README.md ---
 \`\`\`markdown
 # My Project
+
+- Point 1
 \`\`\``
 		expect(output).toBe(expected)
 	})
@@ -44,6 +46,8 @@ console.log("hello");
 ### FILE: README.md
 [[CODE]]
 # My Project
+
+- Point 1
 [[/CODE]]`
 		expect(output).toBe(expected)
 	})

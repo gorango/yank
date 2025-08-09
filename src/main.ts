@@ -32,8 +32,12 @@ async function main() {
 		}
 
 		if (config.stats) {
+			const totalLines = files.reduce((acc, file) => acc + file.lineCount, 0)
 			const size = byteSize(Buffer.byteLength(output, 'utf-8'))
-			console.error('---' + '\n' + `Files: ${files.length}` + '\n' + `Size: ${size}`)
+			console.error('---')
+			console.error(`Files: ${files.length}`)
+			console.error(`Lines: ${totalLines.toLocaleString()}`)
+			console.error(`Size: ${size}`)
 		}
 	}
 	catch (error) {

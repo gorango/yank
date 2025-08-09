@@ -1,6 +1,7 @@
 export interface ProcessedFile {
 	relPath: string
 	content: string
+	lineCount: number
 }
 
 export interface YankConfigCtor {
