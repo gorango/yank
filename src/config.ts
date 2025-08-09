@@ -40,6 +40,18 @@ export class YankConfig {
 	}
 
 	public static async init(): Promise<YankConfig> {
+		const preParse = yargs(hideBin(process.argv))
+			.option('config', {
+				alias: 'C',
+				type: 'string',
+				describe: 'Path to a custom configuration file.',
+			})
+			.help(false)
+			.version(false)
+			.parseSync()
+
+		const customConfigPath = preParse.config as string | undefined
+
 		const explorer = cosmiconfig(moduleName, {
 			searchPlaces: [
 				'package.json',
@@ -58,8 +70,15 @@ export class YankConfig {
 
 		const [appVersion, configFileResult] = await Promise.all([
 			getPackageVersion(),
-			explorer.search(),
+			customConfigPath ? explorer.load(customConfigPath) : explorer.search(),
 		])
+
+		if (customConfigPath && !configFileResult) {
+			throw new Error(
+				`Configuration file not found or failed to load at: ${customConfigPath}`,
+			)
+		}
+
 		const fileConfig = configFileResult?.config || {}
 
 		const argv = await yargs(hideBin(process.argv))
@@ -91,13 +110,13 @@ export class YankConfig {
 				default: false,
 			})
 			.option('file-template', {
-				alias: 'ft',
+				alias: 'H',
 				type: 'string',
 				description: 'Template for the file header. Placeholders: {filePath}',
 				default: '--- {filePath} ---',
 			})
 			.option('code-template', {
-				alias: 'ct',
+				alias: 'B',
 				type: 'string',
 				description: 'Template for the code block. Placeholders: {language}, {content}',
 				default: '```{language}\n{content}\n```',
@@ -106,6 +125,11 @@ export class YankConfig {
 				type: 'boolean',
 				description: 'Enable debug output.',
 				default: false,
+			})
+			.option('config', {
+				alias: 'C',
+				type: 'string',
+				description: 'Path to a custom configuration file.',
 			})
 			.config(fileConfig)
 			.help()

@@ -83,3 +83,67 @@ describe('YankConfig.init', () => {
 		expect(config.include).toEqual(['src/**/*'])
 	})
 })
+
+describe('YankConfig.init with config file loading', () => {
+	let argvSpy: ReturnType<typeof vi.spyOn>
+	let cosmiconfigMock: any
+
+	beforeEach(async () => {
+		vi.resetAllMocks()
+
+		const { cosmiconfig } = vi.mocked(await import('cosmiconfig'))
+		cosmiconfigMock = {
+			search: vi.fn().mockResolvedValue(null),
+			load: vi.fn().mockResolvedValue(null),
+			clearLoadCache: vi.fn(),
+			clearSearchCache: vi.fn(),
+			clearCaches: vi.fn(),
+		}
+		cosmiconfig.mockReturnValue(cosmiconfigMock)
+
+		const fsPromisesMock = vi.mocked(await import('node:fs/promises'))
+		fsPromisesMock.readFile.mockResolvedValue(JSON.stringify({ version: '1.2.3' }))
+
+		argvSpy = vi.spyOn(process, 'argv', 'get')
+	})
+
+	afterEach(() => {
+		argvSpy.mockRestore()
+	})
+
+	it('should use cosmiconfig.load() when --config flag is provided', async () => {
+		const customConfigPath = 'custom/path/yank.json'
+		const customConfig = { clip: true, include: ['lib/**'] }
+		argvSpy.mockReturnValue(['node', 'yank', '--config', customConfigPath])
+		cosmiconfigMock.load.mockResolvedValue({ config: customConfig, filepath: customConfigPath })
+
+		const config = await YankConfig.init()
+
+		expect(cosmiconfigMock.load).toHaveBeenCalledWith(customConfigPath)
+		expect(cosmiconfigMock.search).not.toHaveBeenCalled()
+		expect(config.clip).toBe(true)
+		expect(config.include).toEqual(['lib/**'])
+	})
+
+	it('should throw an error if --config path is not found', async () => {
+		const customConfigPath = 'non/existent/config.toml'
+		argvSpy.mockReturnValue(['node', 'yank', '--config', customConfigPath])
+		cosmiconfigMock.load.mockResolvedValue(null) // Simulate file not found
+
+		await expect(YankConfig.init()).rejects.toThrow(
+			`Configuration file not found or failed to load at: ${customConfigPath}`,
+		)
+	})
+
+	it('should use cosmiconfig.search() when --config flag is not provided', async () => {
+		const foundConfig = { stats: true }
+		argvSpy.mockReturnValue(['node', 'yank'])
+		cosmiconfigMock.search.mockResolvedValue({ config: foundConfig, filepath: '/project/yank.toml' })
+
+		const config = await YankConfig.init()
+
+		expect(cosmiconfigMock.search).toHaveBeenCalled()
+		expect(cosmiconfigMock.load).not.toHaveBeenCalled()
+		expect(config.stats).toBe(true)
+	})
+})

@@ -32,12 +32,13 @@ yank
 
 | Flag | Alias | Description | Default |
 | :--- | :--- | :--- | :--- |
+| `--config` | `-C` | Path to a custom configuration file. | |
 | `--include` | `-i` | Glob patterns for files to include. **Ignored if paths are provided directly.** | `**/*` |
 | `--exclude` | `-x` | Glob patterns to exclude. Appended to built-in defaults. | `[]` |
 | `--clip` | `-c` | Send output to the system clipboard instead of `stdout`. | `false` |
 | `--stats` | `-s` | Print summary statistics to `stderr`. | `false` |
-| `--file-template` | `-ft` | Template for the file header. | `--- {filePath} ---` |
-| `--code-template` | `-ct` | Template for the code block. | `\`\`\`{language}\n{content}\n\`\`\`` |
+| `--name-template` | `-H` | Template for the file header. | `--- {filePath} ---` |
+| `--code-template` | `-B` | Template for the code block. | `\`\`\`{language}\n{content}\n\`\`\`` |
 | `--debug` | | Enable verbose debug logging. | `false` |
 | `--help` | `-h` | Show the help message. | |
 | `--version` | `-v` | Show the version number. | |
