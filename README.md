@@ -36,7 +36,7 @@ yank
 | `--include` | `-i` | Glob patterns for files to include. **Ignored if paths are provided directly.** | `**/*` |
 | `--exclude` | `-x` | Glob patterns to exclude. Appended to built-in defaults. | `[]` |
 | `--name-template` | `-H` | Template for the file header. | `--- {filePath} ---` |
-| `--code-template` | `-B` | Template for the code block. | `\`\`\`{language}\n{content}\n\`\`\`` |
+| `--code-template` | `-B` | Template for the code block. | ` ```{language}\n{content}\n``` ` |
 | `--stats` | `-s` | Print summary statistics to `stderr`. | `false` |
 | `--tokens` | `-t` | Print number of tokens in `stats`. | `false` |
 | `--config` | `-C` | Path to a custom configuration file. | |

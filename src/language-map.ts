@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 export const languageMap: Record<string, string> = {
 	// Web
 	ts: 'typescript',
@@ -71,11 +73,11 @@ export const languageMap: Record<string, string> = {
 }
 
 export function getLanguage(filePath: string): string {
-	const filename = filePath.split('/').pop() ?? ''
+	const filename = path.basename(filePath)
 
 	if (languageMap[filename])
 		return languageMap[filename]
 
-	const extension = filename.split('.').pop()?.toLowerCase() ?? ''
+	const extension = path.extname(filename).slice(1).toLowerCase()
 	return languageMap[extension] ?? '' // empty string for unknown languages
 }
