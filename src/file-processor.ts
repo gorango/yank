@@ -25,6 +25,7 @@ export async function processFiles(config: YankConfig): Promise<ProcessedFile[]>
 		dot: true,
 		absolute: true,
 		onlyFiles: true,
+		ignore: config.exclude,
 		followSymbolicLinks: false,
 	})
 

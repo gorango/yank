@@ -1,10 +1,12 @@
 import type fs from 'node:fs'
 import process from 'node:process'
+import fg from 'fast-glob'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { YankConfig } from './config'
 
 vi.mock('cosmiconfig')
 vi.mock('node:fs/promises')
+vi.mock('fast-glob')
 
 describe('YankConfig.init', () => {
 	let argvSpy: ReturnType<typeof vi.spyOn>
@@ -25,14 +27,16 @@ describe('YankConfig.init', () => {
 		fsPromisesMock.readFile.mockResolvedValue(JSON.stringify({ version: '1.2.3' }))
 		fsPromisesMock.stat.mockImplementation(async (p: fs.PathLike) => {
 			const pathStr = p.toString()
-			if (pathStr === 'src' || pathStr === 'docs/') {
+			if (pathStr === 'src' || pathStr === 'docs/')
 				return { isDirectory: () => true } as fs.Stats
-			}
-			if (pathStr === 'README.md') {
+
+			if (pathStr === 'README.md')
 				return { isDirectory: () => false } as fs.Stats
-			}
-			throw new Error('ENOENT')
+
+			throw new Error(`ENOENT: no such file or directory, stat '${pathStr}'`)
 		})
+
+		vi.mocked(fg.isDynamicPattern).mockImplementation((pattern: string) => pattern.includes('*'))
 
 		argvSpy = vi.spyOn(process, 'argv', 'get')
 	})
@@ -41,8 +45,20 @@ describe('YankConfig.init', () => {
 		argvSpy.mockRestore()
 	})
 
-	it('should convert a directory argument into a glob pattern', async () => {
+	it('should use the default include pattern when no arguments are provided', async () => {
+		argvSpy.mockReturnValue(['node', 'yank'])
+		const config = await YankConfig.init()
+		expect(config.include).toEqual(['**/*'])
+	})
+
+	it('should convert a positional directory argument into a glob pattern', async () => {
 		argvSpy.mockReturnValue(['node', 'yank', 'src'])
+		const config = await YankConfig.init()
+		expect(config.include).toEqual(['src/**/*'])
+	})
+
+	it('should convert a directory from --include flag into a glob pattern', async () => {
+		argvSpy.mockReturnValue(['node', 'yank', '--include', 'src'])
 		const config = await YankConfig.init()
 		expect(config.include).toEqual(['src/**/*'])
 	})
@@ -53,34 +69,28 @@ describe('YankConfig.init', () => {
 		expect(config.include).toEqual(['docs/**/*'])
 	})
 
-	it('should keep a file argument as is', async () => {
+	it('should keep a positional file argument as is', async () => {
 		argvSpy.mockReturnValue(['node', 'yank', 'README.md'])
 		const config = await YankConfig.init()
 		expect(config.include).toEqual(['README.md'])
 	})
 
-	it('should keep a glob-like argument as is', async () => {
+	it('should keep a glob-like positional argument as is', async () => {
 		argvSpy.mockReturnValue(['node', 'yank', 'lib/**/*.ts'])
 		const config = await YankConfig.init()
 		expect(config.include).toEqual(['lib/**/*.ts'])
 	})
 
-	it('should correctly process a mix of arguments', async () => {
-		argvSpy.mockReturnValue(['node', 'yank', 'src', 'README.md', 'lib/**/*.ts'])
+	it('should keep a glob-like --include argument as is', async () => {
+		argvSpy.mockReturnValue(['node', 'yank', '--include', 'lib/**/*.ts'])
+		const config = await YankConfig.init()
+		expect(config.include).toEqual(['lib/**/*.ts'])
+	})
+
+	it('should correctly combine positional arguments and --include flags', async () => {
+		argvSpy.mockReturnValue(['node', 'yank', 'src', '--include', 'README.md', '--include', 'lib/**/*.ts'])
 		const config = await YankConfig.init()
 		expect(config.include).toEqual(['src/**/*', 'README.md', 'lib/**/*.ts'])
-	})
-
-	it('should use the default include pattern when no arguments are provided', async () => {
-		argvSpy.mockReturnValue(['node', 'yank'])
-		const config = await YankConfig.init()
-		expect(config.include).toEqual(['**/*'])
-	})
-
-	it('should prioritize positional arguments over the --include flag', async () => {
-		argvSpy.mockReturnValue(['node', 'yank', 'src', '--include', 'lib/**'])
-		const config = await YankConfig.init()
-		expect(config.include).toEqual(['src/**/*'])
 	})
 })
 
@@ -103,6 +113,8 @@ describe('YankConfig.init with config file loading', () => {
 
 		const fsPromisesMock = vi.mocked(await import('node:fs/promises'))
 		fsPromisesMock.readFile.mockResolvedValue(JSON.stringify({ version: '1.2.3' }))
+
+		vi.mocked(fg.isDynamicPattern).mockImplementation((pattern: string) => pattern.includes('*'))
 
 		argvSpy = vi.spyOn(process, 'argv', 'get')
 	})
@@ -128,7 +140,7 @@ describe('YankConfig.init with config file loading', () => {
 	it('should throw an error if --config path is not found', async () => {
 		const customConfigPath = 'non/existent/config.toml'
 		argvSpy.mockReturnValue(['node', 'yank', '--config', customConfigPath])
-		cosmiconfigMock.load.mockResolvedValue(null) // Simulate file not found
+		cosmiconfigMock.load.mockResolvedValue(null)
 
 		await expect(YankConfig.init()).rejects.toThrow(
 			`Configuration file not found or failed to load at: ${customConfigPath}`,

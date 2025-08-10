@@ -3,6 +3,7 @@ import fs from 'node:fs/promises'
 import process from 'node:process'
 import { cosmiconfig } from 'cosmiconfig'
 import { loadToml } from 'cosmiconfig-toml-loader'
+import fg from 'fast-glob'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 import { BINARY_FILE_EXTENSIONS, DEFAULT_EXCLUDE_PATTERNS } from './defaults.js'
@@ -107,14 +108,14 @@ export class YankConfig {
 				alias: 'i',
 				type: 'array',
 				string: true,
-				description: 'Glob to include.',
-				default: ['**/*'],
+				description: 'Glob patterns for files to include. Combined with any positional paths.',
+				default: [],
 			})
 			.option('exclude', {
 				alias: 'x',
 				type: 'array',
 				string: true,
-				description: 'Glob to exclude.',
+				description: 'Glob patterns to exclude.',
 				default: [],
 			})
 			.option('file-template', {
@@ -158,32 +159,40 @@ export class YankConfig {
 			.alias('v', 'version')
 			.parse()
 
-		const positionalArgs = argv._.map(String)
-		let includes: string[]
+		/**
+		 * Processes a list of paths/patterns. If a path is a directory,
+		 * it expands it to a glob pattern (e.g., 'src' -> 'src/** /*').
+		 */
+		async function expandDirectoryPatterns(patterns: string[]): Promise<string[]> {
+			return Promise.all(
+				patterns.map(async (pattern) => {
+					if (fg.isDynamicPattern(pattern))
+						return pattern
 
-		if (positionalArgs.length > 0) {
-			includes = await Promise.all(
-				positionalArgs.map(async (arg) => {
 					try {
-						const stats = await fs.stat(arg)
+						const stats = await fs.stat(pattern)
 						if (stats.isDirectory()) {
-							const cleanArg = arg.replace(/[/\\]$/, '')
-							return `${cleanArg}/**/*`
+							const cleanPattern = pattern.replace(/[/\\]$/, '')
+							return `${cleanPattern}/**/*`
 						}
-						else {
-							return arg
-						}
+						return pattern
 					}
 					catch {
-						return arg
+						return pattern
 					}
 				}),
 			)
 		}
 
-		else {
-			includes = argv.include
-		}
+		const positionalArgs = argv._.map(String)
+		const rawIncludePatterns = [...positionalArgs, ...argv.include]
+
+		let includes: string[]
+
+		if (rawIncludePatterns.length > 0)
+			includes = await expandDirectoryPatterns(rawIncludePatterns)
+		else
+			includes = ['**/*']
 
 		const binaryIgnorePattern = `**/*.{${BINARY_FILE_EXTENSIONS.join(',')}}`
 		const excludes = [...DEFAULT_EXCLUDE_PATTERNS, binaryIgnorePattern, ...argv.exclude]
