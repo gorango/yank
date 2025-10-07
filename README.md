@@ -5,12 +5,17 @@ A fast, simple CLI to grab, format, and copy source code.
 ## Installation
 
 ```sh
-npm install -g gorango/yank
+git clone https://github.com/gorango/yank
+cd yank
+npm install
+npm run build
+npm link
 ```
 
 ## Usage
 
 #### Basic Usage
+
 You can pass file and directory paths directly to `yank`. By default, it prints the formatted result to `stdout`, which is perfect for piping.
 
 ```sh
