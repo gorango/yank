@@ -12,7 +12,7 @@ export const BINARY_FILE_EXTENSIONS: string[] = [
 	// Documents
 	'doc', 'docx', 'dotx', 'epub', 'mobi', 'odt', 'pdf', 'ppt', 'pptx', 'rtf', 'xls', 'xlsx',
 	// Other
-	'bin', 'class', 'core', 'dat', 'db', 'dll', 'dylib', 'eot', 'exe', 'lock', 'o', 'obj', 'pak', 'pdb', 'so', 'sqlite', 'swp', 'swo', 'ttf', 'woff', 'woff2',
+	'bin', 'class', 'core', 'dat', 'db', 'dll', 'dylib', 'eot', 'exe', 'lock', 'o', 'obj', 'pak', 'pdb', 'so', 'swp', 'swo', 'ttf', 'woff', 'woff2',
 ]
 
 export const DEFAULT_EXCLUDE_PATTERNS: string[] = [
