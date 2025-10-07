@@ -128,7 +128,7 @@ export class YankConfig {
 				alias: 'B',
 				type: 'string',
 				description: 'Template for body (vars: {language}, {content})',
-				default: '```{language}\n{content}\n```',
+				default: '```{language}\n{content}```',
 			})
 			.option('stats', {
 				alias: 's',
