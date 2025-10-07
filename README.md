@@ -5,11 +5,7 @@ A fast, simple CLI to grab, format, and copy source code.
 ## Installation
 
 ```sh
-git clone https://github.com/gorango/yank
-cd yank
-npm install
-npm run build
-npm link
+npm install -g yank-cli
 ```
 
 ## Usage

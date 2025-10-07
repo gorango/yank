@@ -1,7 +1,29 @@
 {
-	"name": "yank",
+	"name": "yank-cli",
 	"version": "1.0.0",
-	"bin": "dist/main.mjs",
+	"description": "A fast, simple CLI to grab, format, and copy source code.",
+	"author": "gorango",
+	"license": "MIT",
+	"homepage": "https://github.com/gorango/yank",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/gorango/yank.git"
+	},
+	"bugs": "https://github.com/gorango/yank/issues",
+	"keywords": [
+		"cli",
+		"copy",
+		"paste",
+		"source-code",
+		"clipboard",
+		"developer-tools"
+	],
+	"bin": {
+		"yank": "dist/main.mjs"
+	},
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "tsup",
 		"lint": "eslint . --fix",
