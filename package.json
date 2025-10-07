@@ -4,6 +4,7 @@
 	"bin": "dist/main.mjs",
 	"scripts": {
 		"build": "tsup",
+		"lint": "eslint . --fix",
 		"test": "vitest run"
 	},
 	"dependencies": {
