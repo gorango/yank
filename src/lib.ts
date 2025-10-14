@@ -14,9 +14,16 @@ export function generateOutput(
 
 	for (const file of files) {
 		const language = getLanguage(file.relPath)
+		const isMarkdown = language === 'markdown'
 
 		const header = config.fileTemplate.replace('{filePath}', file.relPath)
-		const codeBlock = config.codeTemplate
+
+		// Use 4 backticks for markdown files to allow for nested code blocks
+		const template = isMarkdown
+			? '````{language}\n{content}\n````'
+			: config.codeTemplate
+
+		const codeBlock = template
 			.replace('{language}', language)
 			.replace('{content}', file.content)
 
