@@ -9,6 +9,7 @@ import { hideBin } from 'yargs/helpers'
 import { BINARY_FILE_EXTENSIONS, DEFAULT_EXCLUDE_PATTERNS } from './defaults.js'
 
 const moduleName = 'yank'
+export const DEFAULT_CODE_TEMPLATE = '```{language}\n{content}```'
 
 async function getPackageVersion(): Promise<string> {
 	const packageJsonPath = new URL('../../package.json', import.meta.url)
@@ -128,7 +129,7 @@ export class YankConfig {
 				alias: 'B',
 				type: 'string',
 				description: 'Template for body (vars: {language}, {content})',
-				default: '```{language}\n{content}```',
+				default: DEFAULT_CODE_TEMPLATE,
 			})
 			.option('stats', {
 				alias: 's',

@@ -1,5 +1,6 @@
 import type { YankConfig } from './config.js'
 import type { ProcessedFile } from './types.js'
+import { DEFAULT_CODE_TEMPLATE } from './config.js'
 import { getLanguage } from './language-map.js'
 
 /**
@@ -18,9 +19,9 @@ export function generateOutput(
 
 		const header = config.fileTemplate.replace('{filePath}', file.relPath)
 
-		// Use 4 backticks for markdown files to allow for nested code blocks
-		const template = isMarkdown
-			? '````{language}\n{content}\n````'
+		// Use 4 backticks for markdown files if using the default template
+		const template = isMarkdown && config.codeTemplate === DEFAULT_CODE_TEMPLATE
+			? `\`${DEFAULT_CODE_TEMPLATE}\``
 			: config.codeTemplate
 
 		const codeBlock = template
