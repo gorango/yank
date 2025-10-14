@@ -203,7 +203,7 @@ export class YankConfig {
 			exclude: excludes,
 			fileTemplate: argv.fileTemplate,
 			codeTemplate: argv.codeTemplate,
-			stats: argv.stats,
+			stats: argv.stats || argv.tokens,
 			tokens: argv.tokens,
 			debug: argv.debug,
 		})
