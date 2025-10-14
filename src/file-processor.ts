@@ -1,3 +1,4 @@
+import type { Ignore } from 'ignore'
 import type { YankConfig } from './config.js'
 import type { ProcessedFile } from './types.js'
 import fs from 'node:fs/promises'
@@ -6,54 +7,99 @@ import process from 'node:process'
 import fg from 'fast-glob'
 import ignore from 'ignore'
 
+async function buildIgnoreHierarchy(config: YankConfig): Promise<Map<string, Ignore>> {
+	const cwd = process.cwd()
+	const dirToIgnorer = new Map<string, Ignore>()
+
+	const rootIgnorer = ignore().add(config.exclude)
+	dirToIgnorer.set(cwd, rootIgnorer)
+
+	const gitignorePaths = await fg('**/.gitignore', {
+		dot: true,
+		absolute: true,
+		ignore: ['**/node_modules/**', '**/.git/**'],
+	})
+
+	gitignorePaths.sort((a, b) => a.split(path.sep).length - b.split(path.sep).length)
+
+	for (const absPath of gitignorePaths) {
+		const dirPath = path.dirname(absPath)
+		const parentDirPath = path.dirname(dirPath)
+		const parentIgnorer = dirToIgnorer.get(parentDirPath) ?? rootIgnorer
+
+		try {
+			const content = await fs.readFile(absPath, 'utf-8')
+			dirToIgnorer.set(dirPath, ignore().add(parentIgnorer).add(content))
+			if (config.debug)
+				console.debug(`Loaded: ${path.relative(cwd, absPath)}`)
+		}
+		catch {
+			if (config.debug)
+				console.debug(`Failed to read: ${path.relative(cwd, absPath)}`)
+		}
+	}
+
+	return dirToIgnorer
+}
+
 export async function processFiles(config: YankConfig): Promise<ProcessedFile[]> {
-	const ignorer = ignore().add(config.exclude)
+	const cwd = process.cwd()
+	const dirToIgnorer = await buildIgnoreHierarchy(config)
 
-	const gitignorePath = path.resolve(process.cwd(), '.gitignore')
-	try {
-		const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8')
-		ignorer.add(gitignoreContent)
-		if (config.debug)
-			console.debug('Loaded rules from local .gitignore file.')
-	}
-	catch {
-		if (config.debug)
-			console.debug('No local .gitignore file found. Continuing without it.')
-	}
-
-	const absolutePaths = await fg(config.include, {
+	const allFiles = await fg(config.include, {
 		dot: true,
 		absolute: true,
 		onlyFiles: true,
-		ignore: config.exclude,
+		ignore: ['**/node_modules/**', '**/.git/**'],
 		followSymbolicLinks: false,
 	})
 
-	const filteredPaths = absolutePaths
-		.filter((absPath) => {
-			const relPath = path.relative(process.cwd(), absPath)
-			return !ignorer.ignores(relPath)
-		})
-		.sort()
+	const filteredPaths = allFiles.filter((absPath) => {
+		const dirPath = path.dirname(absPath)
+
+		let ignorer: Ignore | undefined
+		let ignorerDir: string | undefined
+		let current = dirPath
+		while (current.startsWith(cwd)) {
+			if (dirToIgnorer.has(current)) {
+				ignorer = dirToIgnorer.get(current)
+				ignorerDir = current
+				break
+			}
+			if (current === cwd)
+				break
+			current = path.dirname(current)
+		}
+
+		if (!ignorer || !ignorerDir) {
+			ignorer = dirToIgnorer.get(cwd)!
+			ignorerDir = cwd
+		}
+
+		const relConfigPath = path.relative(ignorerDir, absPath)
+		let isIgnored = ignorer.ignores(relConfigPath)
+
+		if (isIgnored && path.basename(absPath) === '.gitignore' && dirPath === ignorerDir) {
+			const parentDir = path.dirname(dirPath)
+			const parentIgnorer = dirToIgnorer.get(parentDir) ?? dirToIgnorer.get(cwd)!
+			const relParentPath = path.relative(cwd, absPath)
+			isIgnored = parentIgnorer.ignores(relParentPath)
+		}
+
+		return !isIgnored
+	}).sort()
 
 	if (config.debug) {
-		console.debug(`Found ${filteredPaths.length} files to process after filtering.`)
+		console.debug(`Files found: ${allFiles.length}. After ignore rules: ${filteredPaths.length}.`)
 	}
 
 	const filePromises = filteredPaths.map(async (absPath) => {
 		try {
 			const content = await fs.readFile(absPath, 'utf-8')
-			const relPath = path.relative(process.cwd(), absPath).replace(/\\/g, '/')
-			const lineCount = content.split('\n').length
-			return { relPath, content, lineCount }
+			const relPath = path.relative(cwd, absPath).replace(/\\/g, '/')
+			return { relPath, content, lineCount: content.split('\n').length }
 		}
-		catch (err) {
-			if (config.debug) {
-				const relPath = path.relative(process.cwd(), absPath)
-				console.debug(`Skipping file due to read error: ${relPath} (${(err as Error).message})`)
-			}
-			return null // binary, unreadable, etc
-		}
+		catch { return null }
 	})
 
 	return (await Promise.all(filePromises)).filter(Boolean) as ProcessedFile[]

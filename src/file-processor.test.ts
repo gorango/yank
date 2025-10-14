@@ -48,11 +48,16 @@ describe('processFiles', () => {
 		virtualFs.set(`${MOCK_CWD}/package.json`, '{ "name": "test" }')
 		virtualFs.set(`${MOCK_CWD}/node_modules/dep/index.js`, 'module.exports = {};')
 
-		vi.mocked(fg).mockResolvedValue([
-			`${MOCK_CWD}/src/main.ts`,
-			`${MOCK_CWD}/package.json`,
-			`${MOCK_CWD}/node_modules/dep/index.js`,
-		])
+		vi.mocked(fg).mockImplementation(async (patterns) => {
+			if (patterns.toString().includes('.gitignore'))
+				return []
+
+			return [
+				`${MOCK_CWD}/src/main.ts`,
+				`${MOCK_CWD}/package.json`,
+				`${MOCK_CWD}/node_modules/dep/index.js`,
+			]
+		})
 
 		const processed = await processFiles(mockConfig)
 
@@ -70,15 +75,79 @@ describe('processFiles', () => {
 		virtualFs.set(`${MOCK_CWD}/dist/bundle.js`, '/* minified code */')
 		virtualFs.set(`${MOCK_CWD}/.gitignore`, 'dist/\n*.log')
 
-		vi.mocked(fg).mockResolvedValue([
-			`${MOCK_CWD}/src/main.ts`,
-			`${MOCK_CWD}/dist/bundle.js`,
-		])
+		vi.mocked(fg).mockImplementation(async (patterns) => {
+			if (patterns.toString().includes('.gitignore'))
+				return [`${MOCK_CWD}/.gitignore`]
+
+			return [
+				`${MOCK_CWD}/src/main.ts`,
+				`${MOCK_CWD}/dist/bundle.js`,
+			]
+		})
 
 		const processed = await processFiles(mockConfig)
 
-		expect(fs.readFile).toHaveBeenCalledWith(`${MOCK_CWD}/.gitignore`, 'utf-8')
 		expect(processed).toHaveLength(1)
 		expect(processed[0].relPath).toBe('src/main.ts')
+	})
+})
+
+describe('processFiles with nested .gitignore', () => {
+	const mockConfig: YankConfigCtor = {
+		include: ['**/*'],
+		exclude: [],
+		debug: false,
+		tokens: false,
+		clip: false,
+		fileTemplate: '--- {filePath} ---',
+		codeTemplate: '```{language}\n{content}\n```',
+		stats: false,
+	}
+
+	it('should fail on original code because nested negation is not respected', async () => {
+		// Root ignores all logs
+		virtualFs.set(`${MOCK_CWD}/.gitignore`, '*.log')
+		virtualFs.set(`${MOCK_CWD}/root.log`, 'content')
+
+		// Src un-ignores logs
+		virtualFs.set(`${MOCK_CWD}/src/.gitignore`, '!*.log')
+		virtualFs.set(`${MOCK_CWD}/src/server.log`, 'content')
+
+		vi.mocked(fg).mockImplementation(async (patterns) => {
+			if (patterns.toString().includes('.gitignore')) {
+				return [`${MOCK_CWD}/.gitignore`, `${MOCK_CWD}/src/.gitignore`]
+			}
+			return [
+				`${MOCK_CWD}/root.log`,
+				`${MOCK_CWD}/src/server.log`,
+				`${MOCK_CWD}/.gitignore`,
+				`${MOCK_CWD}/src/.gitignore`,
+			]
+		})
+
+		const processed = await processFiles(mockConfig)
+		const paths = processed.map(p => p.relPath).sort()
+
+		expect(paths).toEqual([
+			'.gitignore',
+			'src/.gitignore',
+			'src/server.log',
+		])
+	})
+
+	it('should fail on original code regarding .gitignore self-exclusion via wildcard', async () => {
+		virtualFs.set(`${MOCK_CWD}/dist/.gitignore`, '*')
+		virtualFs.set(`${MOCK_CWD}/dist/file.js`, 'content')
+
+		vi.mocked(fg).mockImplementation(async (patterns) => {
+			if (patterns.toString().includes('.gitignore'))
+				return [`${MOCK_CWD}/dist/.gitignore`]
+			return [`${MOCK_CWD}/dist/.gitignore`, `${MOCK_CWD}/dist/file.js`]
+		})
+
+		const processed = await processFiles(mockConfig)
+		const paths = processed.map(p => p.relPath).sort()
+
+		expect(paths).toEqual(['dist/.gitignore'])
 	})
 })
