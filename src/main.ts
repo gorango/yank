@@ -26,7 +26,7 @@ async function main() {
 
 		if (config.clip) {
 			await clipboard.write(output)
-			console.error(`Yanked ${files.length} files to clipboard.`)
+			console.error(`Yanking ${files.length} files into clipboard.`)
 		}
 		else {
 			console.log(output)
