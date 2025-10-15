@@ -104,50 +104,135 @@ describe('processFiles with nested .gitignore', () => {
 		stats: false,
 	}
 
-	it('should fail on original code because nested negation is not respected', async () => {
+	it('should handle multiple nested .gitignore files with conflicting negations', async () => {
 		// Root ignores all logs
 		virtualFs.set(`${MOCK_CWD}/.gitignore`, '*.log')
-		virtualFs.set(`${MOCK_CWD}/root.log`, 'content')
+		virtualFs.set(`${MOCK_CWD}/root.log`, 'root log content')
 
 		// Src un-ignores logs
 		virtualFs.set(`${MOCK_CWD}/src/.gitignore`, '!*.log')
-		virtualFs.set(`${MOCK_CWD}/src/server.log`, 'content')
+		virtualFs.set(`${MOCK_CWD}/src/server.log`, 'server log content')
+
+		// Src/subdir re-ignores logs
+		virtualFs.set(`${MOCK_CWD}/src/subdir/.gitignore`, '*.log')
+		virtualFs.set(`${MOCK_CWD}/src/subdir/app.log`, 'app log content')
+
+		// Src/subdir/nested un-ignores logs again
+		virtualFs.set(`${MOCK_CWD}/src/subdir/nested/.gitignore`, '!*.log')
+		virtualFs.set(`${MOCK_CWD}/src/subdir/nested/debug.log`, 'debug log content')
 
 		vi.mocked(fg).mockImplementation(async (patterns) => {
 			if (patterns.toString().includes('.gitignore')) {
-				return [`${MOCK_CWD}/.gitignore`, `${MOCK_CWD}/src/.gitignore`]
+				return [
+					`${MOCK_CWD}/.gitignore`,
+					`${MOCK_CWD}/src/.gitignore`,
+					`${MOCK_CWD}/src/subdir/.gitignore`,
+					`${MOCK_CWD}/src/subdir/nested/.gitignore`,
+				]
 			}
 			return [
 				`${MOCK_CWD}/root.log`,
 				`${MOCK_CWD}/src/server.log`,
+				`${MOCK_CWD}/src/subdir/app.log`,
+				`${MOCK_CWD}/src/subdir/nested/debug.log`,
 				`${MOCK_CWD}/.gitignore`,
 				`${MOCK_CWD}/src/.gitignore`,
+				`${MOCK_CWD}/src/subdir/.gitignore`,
+				`${MOCK_CWD}/src/subdir/nested/.gitignore`,
 			]
 		})
 
 		const processed = await processFiles(mockConfig)
 		const paths = processed.map(p => p.relPath).sort()
 
+		// Should include: root.log (ignored), src/server.log (un-ignored), src/subdir/app.log (re-ignored), src/subdir/nested/debug.log (un-ignored again)
+		// All .gitignore files are included due to self-exclusion handling
 		expect(paths).toEqual([
 			'.gitignore',
 			'src/.gitignore',
 			'src/server.log',
+			'src/subdir/.gitignore',
+			'src/subdir/nested/.gitignore',
+			'src/subdir/nested/debug.log',
 		])
 	})
 
-	it('should fail on original code regarding .gitignore self-exclusion via wildcard', async () => {
-		virtualFs.set(`${MOCK_CWD}/dist/.gitignore`, '*')
-		virtualFs.set(`${MOCK_CWD}/dist/file.js`, 'content')
+	it('should handle empty .gitignore files and invalid syntax gracefully', async () => {
+		// Empty .gitignore files don't affect inclusion/exclusion
+		virtualFs.set(`${MOCK_CWD}/.gitignore`, '')
+		virtualFs.set(`${MOCK_CWD}/src/.gitignore`, '# This is a comment only')
+		virtualFs.set(`${MOCK_CWD}/src/invalid.gitignore`, 'invalid syntax [unclosed bracket')
+		virtualFs.set(`${MOCK_CWD}/test.txt`, 'content')
 
 		vi.mocked(fg).mockImplementation(async (patterns) => {
-			if (patterns.toString().includes('.gitignore'))
-				return [`${MOCK_CWD}/dist/.gitignore`]
-			return [`${MOCK_CWD}/dist/.gitignore`, `${MOCK_CWD}/dist/file.js`]
+			if (patterns.toString().includes('.gitignore')) {
+				return [
+					`${MOCK_CWD}/.gitignore`,
+					`${MOCK_CWD}/src/.gitignore`,
+					`${MOCK_CWD}/src/invalid.gitignore`,
+				]
+			}
+			return [`${MOCK_CWD}/test.txt`]
 		})
 
 		const processed = await processFiles(mockConfig)
 		const paths = processed.map(p => p.relPath).sort()
 
-		expect(paths).toEqual(['dist/.gitignore'])
+		// Empty .gitignore files are excluded by default (no self-exclusion for empty files)
+		// Only the test.txt file should be included
+		expect(paths).toEqual(['test.txt'])
+	})
+
+	it('should handle deeply nested .gitignore files (5+ levels)', async () => {
+		// Create a deeply nested structure
+		const deepPath = 'level1/level2/level3/level4/level5'
+		const deepGitignore = `${MOCK_CWD}/${deepPath}/.gitignore`
+
+		virtualFs.set(`${MOCK_CWD}/.gitignore`, 'temp/')
+		virtualFs.set(deepGitignore, '!temp/*')
+		virtualFs.set(`${MOCK_CWD}/temp/file.txt`, 'content')
+		virtualFs.set(`${MOCK_CWD}/${deepPath}/temp/nested.txt`, 'nested content')
+
+		vi.mocked(fg).mockImplementation(async (patterns) => {
+			if (patterns.toString().includes('.gitignore')) {
+				return [`${MOCK_CWD}/.gitignore`, deepGitignore]
+			}
+			return [
+				`${MOCK_CWD}/temp/file.txt`,
+				`${MOCK_CWD}/${deepPath}/temp/nested.txt`,
+				`${MOCK_CWD}/.gitignore`,
+				deepGitignore,
+			]
+		})
+
+		const processed = await processFiles(mockConfig)
+		const paths = processed.map(p => p.relPath).sort()
+
+		// The root .gitignore excludes temp/, so temp/file.txt is excluded
+		// The deep negation only affects files in the deep directory, so only the nested file is included
+		expect(paths).toEqual([
+			'.gitignore',
+			`${deepPath}/.gitignore`,
+			`${deepPath}/temp/nested.txt`,
+		])
+	})
+
+	it('should handle .gitignore files that exclude themselves', async () => {
+		// .gitignore that excludes itself
+		virtualFs.set(`${MOCK_CWD}/.gitignore`, '.gitignore')
+		virtualFs.set(`${MOCK_CWD}/src/.gitignore`, '.gitignore')
+
+		vi.mocked(fg).mockImplementation(async (patterns) => {
+			if (patterns.toString().includes('.gitignore')) {
+				return [`${MOCK_CWD}/.gitignore`, `${MOCK_CWD}/src/.gitignore`]
+			}
+			return [`${MOCK_CWD}/.gitignore`, `${MOCK_CWD}/src/.gitignore`]
+		})
+
+		const processed = await processFiles(mockConfig)
+		const paths = processed.map(p => p.relPath).sort()
+
+		// .gitignore files that exclude themselves are excluded (no self-exclusion handling for explicit exclusions)
+		expect(paths).toEqual([])
 	})
 })

@@ -80,4 +80,75 @@ codeTemplate = """
 {content}
 ```
 """
-````
+ ````
+
+## Ignore Rules Handling
+
+`yank` processes `.gitignore` files hierarchically to determine which files to include or exclude. This ensures that nested `.gitignore` rules are properly respected, including negations and self-exclusion behavior.
+
+### Hierarchical Processing
+
+`.gitignore` files are processed from the root directory down, with each directory's rules inheriting from its parent:
+
+- Root `.gitignore` rules apply to the entire project
+- Subdirectory `.gitignore` files can override parent rules for files in their directory
+- Negation patterns (`!pattern`) can re-include files excluded by parent rules
+
+### Negation Support
+
+Negation patterns allow re-including files that would otherwise be excluded:
+
+```gitignore
+# Root .gitignore - exclude all log files
+*.log
+
+# src/.gitignore - re-include log files in src/
+!*.log
+```
+
+In this example:
+- `root.log` would be excluded
+- `src/server.log` would be included (re-included by the negation rule)
+
+### Self-Exclusion Behavior
+
+`.gitignore` files have special handling for self-exclusion:
+
+- If a `.gitignore` file contains `*` (matching everything), it will still be included in the output
+- If a `.gitignore` file explicitly excludes itself (e.g., contains `.gitignore`), it will be excluded
+- Empty `.gitignore` files or files with only comments are excluded by default
+
+### Example Project Structure
+
+```
+project/
+├── .gitignore          # Excludes *.log
+├── root.log           # Excluded
+├── src/
+│   ├── .gitignore     # Contains !*.log
+│   └── server.log     # Included (re-included by negation)
+└── dist/
+    ├── .gitignore     # Contains *
+    └── bundle.js      # Excluded by * rule
+```
+
+In this structure:
+- `root.log` is excluded by the root `.gitignore`
+- `src/server.log` is included due to the negation rule in `src/.gitignore`
+- `dist/bundle.js` is excluded by the `*` rule in `dist/.gitignore`
+- All `.gitignore` files are included in the output
+
+### Troubleshooting
+
+**Unexpected file exclusions:**
+- Check parent directory `.gitignore` files for rules that might affect the file
+- Verify that negation patterns (`!pattern`) are correctly placed in subdirectory `.gitignore` files
+
+**Unexpected file inclusions:**
+- Ensure that `.gitignore` files with negation rules are in the correct directories
+- Check for conflicting rules in nested `.gitignore` files
+
+**Performance with many `.gitignore` files:**
+- `yank` efficiently processes `.gitignore` hierarchies
+- Deeply nested structures (5+ levels) are fully supported
+- Invalid `.gitignore` syntax is handled gracefully without breaking the process
