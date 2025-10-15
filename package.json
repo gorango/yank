@@ -31,6 +31,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"@inquirer/prompts": "^7.9.0",
 		"byte-size": "^9.0.1",
 		"clipboardy": "^4.0.0",
 		"cosmiconfig": "^9.0.0",

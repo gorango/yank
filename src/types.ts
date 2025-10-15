@@ -20,5 +20,6 @@ export interface YankConfigCtor {
 	stats: boolean
 	tokens: boolean
 	debug: boolean
+	preview: boolean
 	langMap?: Record<string, string>
 }

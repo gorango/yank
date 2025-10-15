@@ -20,6 +20,9 @@ yank src --clip
 
 # View multiple files and directories in a pager
 yank config *.json | less
+
+# Interactively select files to yank
+yank --preview
 ```
 
 If you don't provide any paths, `yank` will grab all files in the current project (respecting `.gitignore`).
@@ -44,6 +47,7 @@ yank
 | `--lang-map` | | JSON string of language overrides (e.g., `'{"LICENSE":"text"}'`). | `{}` |
 | `--max-size` | | Maximum file size in bytes to process. Files larger than this are skipped. | `0` (no limit) |
 | `--debug` | | Enable verbose debug logging. | `false` |
+| `--preview` | `-p` | Enable interactive preview mode to select files before processing. | `false` |
 | `--help` | `-h` | Show the help message. | |
 | `--version` | `-v` | Show the version number. | |
 

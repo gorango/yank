@@ -8,7 +8,7 @@ import { YankConfig } from './config.js'
 import { processFiles } from './file-processor.js'
 import { generateOutput } from './lib.js'
 
-async function main() {
+export async function main() {
 	let config: YankConfig | undefined
 
 	try {
@@ -18,10 +18,34 @@ async function main() {
 			console.debug(inspect(config, { depth: null, colors: true, breakLength: 120 }))
 		}
 
-		const { files, stats } = await processFiles(config)
+		let { files, stats } = await processFiles(config)
 		if (files.length === 0) {
 			console.error('No files matched the include/ignore patterns.')
 			process.exit(1)
+		}
+
+		if (config.preview) {
+			try {
+				const { checkbox } = await import('@inquirer/prompts')
+				const choices = files.map((file, index) => ({
+					name: file.relPath,
+					value: index.toString(),
+				}))
+				const selectedIndices = await checkbox({
+					message: 'Select files to yank (use space to toggle, enter to confirm):',
+					choices,
+					pageSize: 20,
+				})
+				if (selectedIndices.length === 0) {
+					console.error('No files selected. Exiting.')
+					process.exit(0)
+				}
+				files = files.filter((_, index) => selectedIndices.includes(index.toString()))
+			}
+			catch (error) {
+				console.error(`Error in preview mode: ${error instanceof Error ? error.message : 'Unknown error'}`)
+				process.exit(1)
+			}
 		}
 
 		const output = await generateOutput(files, config)

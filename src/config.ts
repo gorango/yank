@@ -31,6 +31,7 @@ export class YankConfig {
 	readonly stats: boolean
 	readonly tokens: boolean
 	readonly debug: boolean
+	readonly preview: boolean
 	readonly langMap: Record<string, string>
 
 	private constructor(init: YankConfigCtor) {
@@ -42,6 +43,7 @@ export class YankConfig {
 		this.stats = init.stats
 		this.tokens = init.tokens
 		this.debug = init.debug
+		this.preview = init.preview
 		this.langMap = init.langMap || {}
 	}
 
@@ -196,6 +198,12 @@ export class YankConfig {
 					}
 				},
 			})
+			.option('preview', {
+				alias: 'p',
+				type: 'boolean',
+				description: 'Enable interactive preview mode to select files.',
+				default: false,
+			})
 			.config(fileConfig)
 			.help()
 			.alias('h', 'help')
@@ -263,6 +271,7 @@ export class YankConfig {
 			stats: argv.stats || argv.tokens,
 			tokens: argv.tokens,
 			debug: argv.debug,
+			preview: argv.preview,
 			langMap: argv.langMap,
 		})
 
