@@ -155,10 +155,10 @@ languageOverrides = { LICENSE = "text", Makefile = "makefile" }
 ```json
 // In yank.json
 {
-  "languageOverrides": {
-    "LICENSE": "text",
-    "Makefile": "makefile"
-  }
+	"languageOverrides": {
+		"LICENSE": "text",
+		"Makefile": "makefile"
+	}
 }
 ```
 
@@ -167,6 +167,64 @@ languageOverrides = { LICENSE = "text", Makefile = "makefile" }
 ### Case-Insensitive Extensions
 
 Extensions are handled case-insensitively (e.g., `.R` and `.r` both map to `r` language).
+
+## Token Counting
+
+`yank` supports counting the number of tokens in the output using the `tiktoken` library. This is particularly useful for AI applications where you need to estimate costs or ensure content fits within model limits.
+
+### Usage
+
+Enable token counting with the `--tokens` flag or by setting `tokens: true` in your configuration file. When enabled, the token count is included in the stats output.
+
+```sh
+# Count tokens in the output
+yank --tokens
+
+# In yank.toml
+tokens = true
+```
+
+### Implementation Details
+
+- Uses the `cl100k_base` encoding from `tiktoken`, which is compatible with OpenAI's models (e.g., GPT-3.5, GPT-4).
+- Token count is calculated on the final formatted output, including headers and code blocks.
+- The encoding is properly freed after use to avoid memory leaks.
+
+### AI Use Cases
+
+- **Cost Estimation**: Calculate approximate API costs before sending to AI models.
+- **Context Window Management**: Ensure output fits within model token limits.
+- **Debugging**: Verify that large codebases don't exceed expected token counts.
+
+## Binary File Exclusion
+
+`yank` automatically excludes binary files to prevent corruption of the output and improve performance. Binary files are identified by their file extensions and are not processed or included in the output.
+
+### Excluded Extensions
+
+The following extensions are treated as binary and excluded by default:
+
+**Archives & Compressed**: `7z`, `a`, `apk`, `ar`, `bz2`, `cab`, `cpio`, `deb`, `dmg`, `gz`, `iso`, `jar`, `lz`, `lz4`, `lzma`, `nupkg`, `rar`, `rpm`, `tar`, `taz`, `tbz`, `tbz2`, `tgz`, `tlz`, `txz`, `xz`, `z`, `zip`, `zst`
+
+**Images**: `ai`, `bmp`, `gif`, `heic`, `ico`, `icns`, `jpeg`, `jpg`, `png`, `psd`, `svgz`, `tif`, `tiff`, `webp`
+
+**Video**: `avi`, `flv`, `m4v`, `mkv`, `mov`, `mp4`, `mpeg`, `mpg`, `webm`, `wmv`
+
+**Audio**: `aac`, `aiff`, `flac`, `m4a`, `mp3`, `ogg`, `opus`, `wav`, `wma`
+
+**Documents**: `doc`, `docx`, `dotx`, `epub`, `mobi`, `odt`, `pdf`, `ppt`, `pptx`, `rtf`, `xls`, `xlsx`
+
+**Other**: `bin`, `class`, `core`, `dat`, `db`, `dll`, `dylib`, `eot`, `exe`, `lock`, `o`, `obj`, `pak`, `pdb`, `so`, `swp`, `swo`, `ttf`, `woff`, `woff2`
+
+### Rationale
+
+- **Output Integrity**: Binary files can contain non-text data that corrupts the formatted output.
+- **Performance**: Skipping large binary files speeds up processing.
+- **Relevance**: Typically, users want to yank source code, not binary assets.
+
+### Customization
+
+You can override this behavior by using include patterns that explicitly match binary files, but they will still be processed as text if readable.
 
 ## Ignore Rules Handling
 
@@ -226,36 +284,68 @@ In this structure:
 
 ### Troubleshooting
 
+### Common Issues
+
+**No files matched:**
+- Verify that your include patterns are correct and that the files exist in the specified directories.
+- Check if `.gitignore` rules are excluding the files you expect to include.
+- Use `--debug` to see detailed information about file discovery.
+
 **Unexpected file exclusions:**
-- Check parent directory `.gitignore` files for rules that might affect the file
-- Verify that negation patterns (`!pattern`) are correctly placed in subdirectory `.gitignore` files
+- Check parent directory `.gitignore` files for rules that might affect the file.
+- Verify that negation patterns (`!pattern`) are correctly placed in subdirectory `.gitignore` files.
+- Ensure that the file is not being excluded by default patterns (e.g., `node_modules/**`).
 
 **Unexpected file inclusions:**
-- Ensure that `.gitignore` files with negation rules are in the correct directories
-- Check for conflicting rules in nested `.gitignore` files
+- Ensure that `.gitignore` files with negation rules are in the correct directories.
+- Check for conflicting rules in nested `.gitignore` files.
+- Review your include and exclude patterns for overlaps.
+
+**Permission denied:**
+- Some files may be inaccessible due to file permissions. Use `--debug` to see which files are being skipped and why.
+- Run `yank` with appropriate permissions or as a different user if necessary.
+
+**Invalid glob pattern:**
+- Check for syntax errors in your include/exclude patterns, such as unclosed brackets `[]`, braces `{}`, or parentheses `()`.
+- `yank` validates patterns and will exit with an error if they are malformed.
+
+**Skipped files:**
+- Files that cannot be read (e.g., due to permissions or being binary) are skipped.
+- When `--stats` is enabled, skipped files are counted and reasons are reported in the output.
+- Use `--debug` for detailed error messages about skipped files.
 
 **Performance with many `.gitignore` files:**
-- `yank` efficiently processes `.gitignore` hierarchies
-- Deeply nested structures (5+ levels) are fully supported
-- Invalid `.gitignore` syntax is handled gracefully without breaking the process
+- `yank` efficiently processes `.gitignore` hierarchies.
+- Deeply nested structures (5+ levels) are fully supported.
+- Invalid `.gitignore` syntax is handled gracefully without breaking the process.
 
-**Error Handling and Debugging:**
+**Token counting issues:**
+- Ensure `tiktoken` is installed and compatible with your Node.js version.
+- Token counts are approximate and based on the `cl100k_base` encoding.
+- If token counting fails, check for encoding errors in the output.
+
+**Language detection problems:**
+- For files without extensions, ensure shebang lines are present and correctly formatted.
+- Use `--lang-map` to override automatic detection for specific files.
+- Check that the file extension is supported (see Language Detection section).
+
+### Error Handling and Debugging
 
 **File reading errors:**
-- Files that cannot be read (e.g., permission denied) are silently skipped in normal mode
-- Use `--debug` flag to see detailed error messages for failed file reads
-- When `--stats` is enabled, skipped files are counted and reasons are reported
+- Files that cannot be read (e.g., permission denied) are silently skipped in normal mode.
+- Use `--debug` flag to see detailed error messages for failed file reads.
+- When `--stats` is enabled, skipped files are counted and reasons are reported.
 
 **Glob pattern validation:**
-- Invalid glob patterns (unclosed brackets `[]`, braces `{}`, or parentheses `()`) will cause `yank` to exit with an error
-- Check your include/exclude patterns for syntax errors
+- Invalid glob patterns will cause `yank` to exit with an error.
+- Common issues include unclosed character classes or brace expansions.
 
 **Debug mode:**
-- Use `--debug` flag to enable verbose logging
-- Shows detailed information about file discovery, ignore rule processing, and error details
-- Includes stack traces for errors when available
+- Use `--debug` flag to enable verbose logging.
+- Shows detailed information about file discovery, ignore rule processing, and error details.
+- Includes stack traces for errors when available.
 
-**Common issues:**
-- **"No files matched"**: Check your include patterns and ensure files exist
-- **"Permission denied"**: Some files may be inaccessible; use `--debug` to see which ones
-- **"Invalid glob pattern"**: Check for syntax errors in your patterns
+**Getting help:**
+- Run `yank --help` for a list of all options.
+- Check the configuration schema for valid settings.
+- Report issues at https://github.com/sst/opencode/issues if problems persist.
