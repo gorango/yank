@@ -42,6 +42,7 @@ yank
 | `--tokens` | `-t` | Print number of tokens in `stats`. | `false` |
 | `--config` | `-C` | Path to a custom configuration file. | |
 | `--lang-map` | | JSON string of language overrides (e.g., `'{"LICENSE":"text"}'`). | `{}` |
+| `--max-size` | | Maximum file size in bytes to process. Files larger than this are skipped. | `0` (no limit) |
 | `--debug` | | Enable verbose debug logging. | `false` |
 | `--help` | `-h` | Show the help message. | |
 | `--version` | `-v` | Show the version number. | |
@@ -85,6 +86,23 @@ codeTemplate = """
 # Override language detection for specific files
 languageOverrides = { LICENSE = "text" }
 ````
+
+## Configuration Schema
+
+The configuration file must adhere to the following schema. Invalid types will cause `yank` to throw an error.
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `clip` | `boolean` | Send output to the system clipboard instead of `stdout`. | `true` |
+| `include` | `array` of `string` | Glob patterns for files to include. | `["src/**/*.ts", "README.md"]` |
+| `exclude` | `array` of `string` | Glob patterns to exclude. | `["**/*.test.ts"]` |
+| `fileTemplate` | `string` | Template for the file header. Must include `{filePath}`. | `"## {filePath}"` |
+| `codeTemplate` | `string` | Template for the code block. Must include `{content}`. | `"```{language}\n{content}\n```"` |
+| `stats` | `boolean` | Print summary statistics to `stderr`. | `true` |
+| `tokens` | `boolean` | Print number of tokens in `stats`. | `false` |
+| `debug` | `boolean` | Enable verbose debug logging. | `false` |
+| `languageOverrides` | `object` | JSON object of language overrides. | `{"LICENSE": "text"}` |
+| `maxSize` | `number` | Maximum file size in bytes to process (0 for no limit). | `1048576` |
 
 ## Language Detection
 

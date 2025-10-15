@@ -99,6 +99,35 @@ export class YankConfig {
 
 		const fileConfig = configFileResult?.config || {}
 
+		// Validate fileConfig fields
+		if (fileConfig.include !== undefined && !Array.isArray(fileConfig.include)) {
+			throw new Error('Configuration error: include must be an array of strings')
+		}
+		if (fileConfig.exclude !== undefined && !Array.isArray(fileConfig.exclude)) {
+			throw new Error('Configuration error: exclude must be an array of strings')
+		}
+		if (fileConfig.fileTemplate !== undefined && typeof fileConfig.fileTemplate !== 'string') {
+			throw new Error('Configuration error: fileTemplate must be a string')
+		}
+		if (fileConfig.codeTemplate !== undefined && typeof fileConfig.codeTemplate !== 'string') {
+			throw new Error('Configuration error: codeTemplate must be a string')
+		}
+		if (fileConfig.clip !== undefined && typeof fileConfig.clip !== 'boolean') {
+			throw new Error('Configuration error: clip must be a boolean')
+		}
+		if (fileConfig.stats !== undefined && typeof fileConfig.stats !== 'boolean') {
+			throw new Error('Configuration error: stats must be a boolean')
+		}
+		if (fileConfig.tokens !== undefined && typeof fileConfig.tokens !== 'boolean') {
+			throw new Error('Configuration error: tokens must be a boolean')
+		}
+		if (fileConfig.debug !== undefined && typeof fileConfig.debug !== 'boolean') {
+			throw new Error('Configuration error: debug must be a boolean')
+		}
+		if (fileConfig.langMap !== undefined && (typeof fileConfig.langMap !== 'object' || fileConfig.langMap === null || Array.isArray(fileConfig.langMap))) {
+			throw new Error('Configuration error: langMap must be an object')
+		}
+
 		const argv = await yargs(hideBin(process.argv))
 			.usage('Usage: $0 [paths...] [options]')
 			.option('clip', {
