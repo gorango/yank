@@ -53,7 +53,8 @@ describe('estimateTokens', () => {
 	})
 
 	it('handles mixed content with code and comments', () => {
-		const text = '// This is a comment\nfunction calculateTotal(items: Item[]): number {\n  return items.reduce((sum, item) => sum + item.price, 0);\n}'
+		const text =
+			'// This is a comment\nfunction calculateTotal(items: Item[]): number {\n  return items.reduce((sum, item) => sum + item.price, 0);\n}'
 		const tokens = estimateTokens(text)
 		// Should handle code keywords, identifiers, punctuation, and newlines
 		expect(tokens).toBeGreaterThanOrEqual(35)

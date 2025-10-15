@@ -41,8 +41,7 @@ export async function main() {
 					process.exit(0)
 				}
 				files = files.filter((_, index) => selectedIndices.includes(index.toString()))
-			}
-			catch (error) {
+			} catch (error) {
 				console.error(`Error in preview mode: ${error instanceof Error ? error.message : 'Unknown error'}`)
 				process.exit(1)
 			}
@@ -53,8 +52,7 @@ export async function main() {
 		if (config.clip) {
 			await clipboard.write(output)
 			console.error(`Yanking ${files.length} files into clipboard.`)
-		}
-		else {
+		} else {
 			console.log(output)
 		}
 
@@ -77,8 +75,7 @@ export async function main() {
 				console.error(`Tokens: ${tokenCount.toLocaleString()}`)
 			}
 		}
-	}
-	catch (error) {
+	} catch (error) {
 		console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
 		if (config?.debug && error instanceof Error) {
 			console.error(error.stack)

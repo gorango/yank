@@ -1,11 +1,11 @@
-import type { Ignore } from 'ignore'
-import type { YankConfig } from './config.js'
-import type { FileProcessingStats, ProcessedFile } from './types.js'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import fg from 'fast-glob'
+import type { Ignore } from 'ignore'
 import ignore from 'ignore'
+import type { YankConfig } from './config.js'
+import type { FileProcessingStats, ProcessedFile } from './types.js'
 
 async function buildIgnoreHierarchy(config: YankConfig): Promise<Map<string, Ignore>> {
 	const cwd = process.cwd()
@@ -30,19 +30,18 @@ async function buildIgnoreHierarchy(config: YankConfig): Promise<Map<string, Ign
 		try {
 			const content = await fs.readFile(absPath, 'utf-8')
 			dirToIgnorer.set(dirPath, ignore().add(parentIgnorer).add(content))
-			if (config.debug)
-				console.debug(`Loaded: ${path.relative(cwd, absPath)}`)
-		}
-		catch {
-			if (config.debug)
-				console.debug(`Failed to read: ${path.relative(cwd, absPath)}`)
+			if (config.debug) console.debug(`Loaded: ${path.relative(cwd, absPath)}`)
+		} catch {
+			if (config.debug) console.debug(`Failed to read: ${path.relative(cwd, absPath)}`)
 		}
 	}
 
 	return dirToIgnorer
 }
 
-export async function processFiles(config: YankConfig): Promise<{ files: ProcessedFile[], stats: FileProcessingStats }> {
+export async function processFiles(
+	config: YankConfig,
+): Promise<{ files: ProcessedFile[]; stats: FileProcessingStats }> {
 	const cwd = process.cwd()
 	const dirToIgnorer = await buildIgnoreHierarchy(config)
 
@@ -54,40 +53,41 @@ export async function processFiles(config: YankConfig): Promise<{ files: Process
 		followSymbolicLinks: false,
 	})
 
-	const filteredPaths = allFiles.filter((absPath) => {
-		const dirPath = path.dirname(absPath)
+	const filteredPaths = allFiles
+		.filter((absPath) => {
+			const dirPath = path.dirname(absPath)
 
-		let ignorer: Ignore | undefined
-		let ignorerDir: string | undefined
-		let current = dirPath
-		while (current.startsWith(cwd)) {
-			if (dirToIgnorer.has(current)) {
-				ignorer = dirToIgnorer.get(current)
-				ignorerDir = current
-				break
+			let ignorer: Ignore | undefined
+			let ignorerDir: string | undefined
+			let current = dirPath
+			while (current.startsWith(cwd)) {
+				if (dirToIgnorer.has(current)) {
+					ignorer = dirToIgnorer.get(current)
+					ignorerDir = current
+					break
+				}
+				if (current === cwd) break
+				current = path.dirname(current)
 			}
-			if (current === cwd)
-				break
-			current = path.dirname(current)
-		}
 
-		if (!ignorer || !ignorerDir) {
-			ignorer = dirToIgnorer.get(cwd)!
-			ignorerDir = cwd
-		}
+			if (!ignorer || !ignorerDir) {
+				ignorer = dirToIgnorer.get(cwd) as Ignore
+				ignorerDir = cwd
+			}
 
-		const relConfigPath = path.relative(ignorerDir, absPath)
-		let isIgnored = ignorer.ignores(relConfigPath)
+			const relConfigPath = path.relative(ignorerDir, absPath)
+			let isIgnored = ignorer.ignores(relConfigPath)
 
-		if (isIgnored && path.basename(absPath) === '.gitignore' && dirPath === ignorerDir) {
-			const parentDir = path.dirname(dirPath)
-			const parentIgnorer = dirToIgnorer.get(parentDir) ?? dirToIgnorer.get(cwd)!
-			const relParentPath = path.relative(cwd, absPath)
-			isIgnored = parentIgnorer.ignores(relParentPath)
-		}
+			if (isIgnored && path.basename(absPath) === '.gitignore' && dirPath === ignorerDir) {
+				const parentDir = path.dirname(dirPath)
+				const parentIgnorer = dirToIgnorer.get(parentDir) ?? (dirToIgnorer.get(cwd) as Ignore)
+				const relParentPath = path.relative(cwd, absPath)
+				isIgnored = parentIgnorer.ignores(relParentPath)
+			}
 
-		return !isIgnored
-	}).sort()
+			return !isIgnored
+		})
+		.sort()
 
 	if (config.debug) {
 		console.debug(`Files found: ${allFiles.length}. After ignore rules: ${filteredPaths.length}.`)
@@ -103,8 +103,7 @@ export async function processFiles(config: YankConfig): Promise<{ files: Process
 			const relPath = path.relative(cwd, absPath).replace(/\\/g, '/')
 			processedCount++
 			return { relPath, content, lineCount: content.split('\n').length }
-		}
-		catch (error) {
+		} catch (error) {
 			skippedCount++
 			const reason = error instanceof Error ? error.message : 'Unknown error'
 			skippedReasons.set(reason, (skippedReasons.get(reason) || 0) + 1)

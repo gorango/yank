@@ -27,11 +27,9 @@ describe('YankConfig.init', () => {
 		fsPromisesMock.readFile.mockResolvedValue(JSON.stringify({ version: '1.2.3' }))
 		fsPromisesMock.stat.mockImplementation(async (p: fs.PathLike) => {
 			const pathStr = p.toString()
-			if (pathStr === 'src' || pathStr === 'docs/')
-				return { isDirectory: () => true } as fs.Stats
+			if (pathStr === 'src' || pathStr === 'docs/') return { isDirectory: () => true } as fs.Stats
 
-			if (pathStr === 'README.md')
-				return { isDirectory: () => false } as fs.Stats
+			if (pathStr === 'README.md') return { isDirectory: () => false } as fs.Stats
 
 			throw new Error(`ENOENT: no such file or directory, stat '${pathStr}'`)
 		})
@@ -103,25 +101,33 @@ describe('YankConfig.init', () => {
 		await expect(YankConfig.init()).rejects.toThrow('Invalid glob pattern: src/{unclosed. Unclosed brace expansion.')
 	})
 
- 	it('should throw error for invalid glob patterns with unclosed parentheses', async () => {
- 		argvSpy.mockReturnValue(['node', 'yank', '--include', 'src/(unclosed'])
- 		await expect(YankConfig.init()).rejects.toThrow('Invalid glob pattern: src/(unclosed. Unclosed group.')
- 	})
+	it('should throw error for invalid glob patterns with unclosed parentheses', async () => {
+		argvSpy.mockReturnValue(['node', 'yank', '--include', 'src/(unclosed'])
+		await expect(YankConfig.init()).rejects.toThrow('Invalid glob pattern: src/(unclosed. Unclosed group.')
+	})
 
- 	it('should throw error for invalid langMap value in argv', async () => {
- 		argvSpy.mockReturnValue(['node', 'yank', '--lang-map', '{"LICENSE":"invalid-language"}'])
- 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: langMap value \'invalid-language\' for \'LICENSE\' is not a valid language')
- 	})
+	it('should throw error for invalid langMap value in argv', async () => {
+		argvSpy.mockReturnValue(['node', 'yank', '--lang-map', '{"LICENSE":"invalid-language"}'])
+		await expect(YankConfig.init()).rejects.toThrow(
+			"Configuration error: langMap value 'invalid-language' for 'LICENSE' is not a valid language",
+		)
+	})
 
- 	it('should throw error for invalid langMap value type in argv', async () => {
- 		argvSpy.mockReturnValue(['node', 'yank', '--lang-map', '{"LICENSE":123}'])
- 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: langMap value for \'LICENSE\' must be a string')
- 	})
+	it('should throw error for invalid langMap value type in argv', async () => {
+		argvSpy.mockReturnValue(['node', 'yank', '--lang-map', '{"LICENSE":123}'])
+		await expect(YankConfig.init()).rejects.toThrow("Configuration error: langMap value for 'LICENSE' must be a string")
+	})
 })
 
 describe('YankConfig.init with config file loading', () => {
 	let argvSpy: ReturnType<typeof vi.spyOn>
-	let cosmiconfigMock: any
+	let cosmiconfigMock: {
+		search: ReturnType<typeof vi.fn>
+		load: ReturnType<typeof vi.fn>
+		clearLoadCache: ReturnType<typeof vi.fn>
+		clearSearchCache: ReturnType<typeof vi.fn>
+		clearCaches: ReturnType<typeof vi.fn>
+	}
 
 	beforeEach(async () => {
 		vi.resetAllMocks()
@@ -152,7 +158,10 @@ describe('YankConfig.init with config file loading', () => {
 		const customConfigPath = 'custom/path/yank.json'
 		const customConfig = { clip: true, include: ['lib/**'] }
 		argvSpy.mockReturnValue(['node', 'yank', '--config', customConfigPath])
-		cosmiconfigMock.load.mockResolvedValue({ config: customConfig, filepath: customConfigPath })
+		cosmiconfigMock.load.mockResolvedValue({
+			config: customConfig,
+			filepath: customConfigPath,
+		})
 
 		const config = await YankConfig.init()
 
@@ -175,7 +184,10 @@ describe('YankConfig.init with config file loading', () => {
 	it('should use cosmiconfig.search() when --config flag is not provided', async () => {
 		const foundConfig = { stats: true }
 		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({ config: foundConfig, filepath: '/project/yank.toml' })
+		cosmiconfigMock.search.mockResolvedValue({
+			config: foundConfig,
+			filepath: '/project/yank.toml',
+		})
 
 		const config = await YankConfig.init()
 
@@ -187,7 +199,10 @@ describe('YankConfig.init with config file loading', () => {
 	it('should throw error for invalid include in config file', async () => {
 		const invalidConfig = { include: 'not-an-array' }
 		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: include must be an array of strings')
 	})
@@ -195,7 +210,10 @@ describe('YankConfig.init with config file loading', () => {
 	it('should throw error for invalid exclude in config file', async () => {
 		const invalidConfig = { exclude: 123 }
 		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: exclude must be an array of strings')
 	})
@@ -203,7 +221,10 @@ describe('YankConfig.init with config file loading', () => {
 	it('should throw error for invalid fileTemplate in config file', async () => {
 		const invalidConfig = { fileTemplate: true }
 		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: fileTemplate must be a string')
 	})
@@ -211,7 +232,10 @@ describe('YankConfig.init with config file loading', () => {
 	it('should throw error for invalid codeTemplate in config file', async () => {
 		const invalidConfig = { codeTemplate: [] }
 		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: codeTemplate must be a string')
 	})
@@ -219,7 +243,10 @@ describe('YankConfig.init with config file loading', () => {
 	it('should throw error for invalid clip in config file', async () => {
 		const invalidConfig = { clip: 'yes' }
 		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: clip must be a boolean')
 	})
@@ -227,7 +254,10 @@ describe('YankConfig.init with config file loading', () => {
 	it('should throw error for invalid stats in config file', async () => {
 		const invalidConfig = { stats: 1 }
 		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: stats must be a boolean')
 	})
@@ -235,7 +265,10 @@ describe('YankConfig.init with config file loading', () => {
 	it('should throw error for invalid tokens in config file', async () => {
 		const invalidConfig = { tokens: 'true' }
 		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: tokens must be a boolean')
 	})
@@ -243,32 +276,46 @@ describe('YankConfig.init with config file loading', () => {
 	it('should throw error for invalid debug in config file', async () => {
 		const invalidConfig = { debug: 0 }
 		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: debug must be a boolean')
 	})
 
- 	it('should throw error for invalid langMap in config file', async () => {
- 		const invalidConfig = { langMap: 'not-an-object' }
- 		argvSpy.mockReturnValue(['node', 'yank'])
- 		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+	it('should throw error for invalid langMap in config file', async () => {
+		const invalidConfig = { langMap: 'not-an-object' }
+		argvSpy.mockReturnValue(['node', 'yank'])
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
- 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: langMap must be an object')
- 	})
+		await expect(YankConfig.init()).rejects.toThrow('Configuration error: langMap must be an object')
+	})
 
- 	it('should throw error for invalid langMap value in config file', async () => {
- 		const invalidConfig = { langMap: { 'LICENSE': 'invalid-language' } }
- 		argvSpy.mockReturnValue(['node', 'yank'])
- 		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+	it('should throw error for invalid langMap value in config file', async () => {
+		const invalidConfig = { langMap: { LICENSE: 'invalid-language' } }
+		argvSpy.mockReturnValue(['node', 'yank'])
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
- 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: langMap value \'invalid-language\' for \'LICENSE\' is not a valid language')
- 	})
+		await expect(YankConfig.init()).rejects.toThrow(
+			"Configuration error: langMap value 'invalid-language' for 'LICENSE' is not a valid language",
+		)
+	})
 
- 	it('should throw error for invalid langMap value type in config file', async () => {
- 		const invalidConfig = { langMap: { 'LICENSE': 123 } }
- 		argvSpy.mockReturnValue(['node', 'yank'])
- 		cosmiconfigMock.search.mockResolvedValue({ config: invalidConfig, filepath: '/project/yank.toml' })
+	it('should throw error for invalid langMap value type in config file', async () => {
+		const invalidConfig = { langMap: { LICENSE: 123 } }
+		argvSpy.mockReturnValue(['node', 'yank'])
+		cosmiconfigMock.search.mockResolvedValue({
+			config: invalidConfig,
+			filepath: '/project/yank.toml',
+		})
 
- 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: langMap value for \'LICENSE\' must be a string')
- 	})
+		await expect(YankConfig.init()).rejects.toThrow("Configuration error: langMap value for 'LICENSE' must be a string")
+	})
 })
