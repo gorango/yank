@@ -60,21 +60,53 @@ describe('getLanguage', () => {
 		}
 	})
 
-	it('should detect shebang for node scripts', async () => {
-		const tempDir = os.tmpdir()
-		const scriptPath = path.join(tempDir, 'test-script')
+ 	it('should detect shebang for node scripts', async () => {
+ 		const tempDir = os.tmpdir()
+ 		const scriptPath = path.join(tempDir, 'test-script')
 
-		try {
-			await fs.writeFile(scriptPath, '#!/usr/bin/node\nconsole.log("Hello World")')
-			expect(await getLanguage(scriptPath)).toBe('javascript')
-		}
-		finally {
-			try {
-				await fs.unlink(scriptPath)
-			}
-			catch {}
-		}
-	})
+ 		try {
+ 			await fs.writeFile(scriptPath, '#!/usr/bin/node\nconsole.log("Hello World")')
+ 			expect(await getLanguage(scriptPath)).toBe('javascript')
+ 		}
+ 		finally {
+ 			try {
+ 				await fs.unlink(scriptPath)
+ 			}
+ 			catch {}
+ 		}
+ 	})
+
+ 	it('should detect shebang for deno scripts', async () => {
+ 		const tempDir = os.tmpdir()
+ 		const scriptPath = path.join(tempDir, 'test-script')
+
+ 		try {
+ 			await fs.writeFile(scriptPath, '#!/usr/bin/env deno\nconsole.log("Hello World")')
+ 			expect(await getLanguage(scriptPath)).toBe('typescript')
+ 		}
+ 		finally {
+ 			try {
+ 				await fs.unlink(scriptPath)
+ 			}
+ 			catch {}
+ 		}
+ 	})
+
+ 	it('should detect shebang for bun scripts', async () => {
+ 		const tempDir = os.tmpdir()
+ 		const scriptPath = path.join(tempDir, 'test-script')
+
+ 		try {
+ 			await fs.writeFile(scriptPath, '#!/usr/bin/env bun\nconsole.log("Hello World")')
+ 			expect(await getLanguage(scriptPath)).toBe('javascript')
+ 		}
+ 		finally {
+ 			try {
+ 				await fs.unlink(scriptPath)
+ 			}
+ 			catch {}
+ 		}
+ 	})
 
 	it('should handle files with no extension and no shebang', async () => {
 		const tempDir = os.tmpdir()

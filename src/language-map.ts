@@ -100,29 +100,33 @@ export async function getLanguage(filePath: string): Promise<string> {
 			const content = await fs.readFile(filePath, 'utf-8')
 			const firstLine = content.split('\n')[0]?.trim()
 
-			if (firstLine?.startsWith('#!')) {
-				// Check for common interpreters in shebang
-				if (firstLine.includes('bash') || firstLine.includes('sh'))
-					return 'bash'
-				if (firstLine.includes('python') || firstLine.includes('python3'))
-					return 'python'
-				if (firstLine.includes('node') || firstLine.includes('nodejs'))
-					return 'javascript'
-				if (firstLine.includes('ruby'))
-					return 'ruby'
-				if (firstLine.includes('perl'))
-					return 'perl'
-				if (firstLine.includes('php'))
-					return 'php'
-				if (firstLine.includes('lua'))
-					return 'lua'
-				if (firstLine.includes('fish'))
-					return 'fish'
-				if (firstLine.includes('zsh'))
-					return 'zsh'
-				if (firstLine.includes('powershell') || firstLine.includes('pwsh'))
-					return 'powershell'
-			}
+ 			if (firstLine?.startsWith('#!')) {
+ 				// Check for common interpreters in shebang
+ 				if (firstLine.includes('bash') || firstLine.includes('sh'))
+ 					return 'bash'
+ 				if (firstLine.includes('python') || firstLine.includes('python3'))
+ 					return 'python'
+ 				if (firstLine.includes('node') || firstLine.includes('nodejs'))
+ 					return 'javascript'
+ 				if (firstLine.includes('ruby'))
+ 					return 'ruby'
+ 				if (firstLine.includes('perl'))
+ 					return 'perl'
+ 				if (firstLine.includes('php'))
+ 					return 'php'
+ 				if (firstLine.includes('lua'))
+ 					return 'lua'
+ 				if (firstLine.includes('fish'))
+ 					return 'fish'
+ 				if (firstLine.includes('zsh'))
+ 					return 'zsh'
+ 				if (firstLine.includes('powershell') || firstLine.includes('pwsh'))
+ 					return 'powershell'
+ 				if (firstLine.includes('deno'))
+ 					return 'typescript'
+ 				if (firstLine.includes('bun'))
+ 					return 'javascript'
+ 			}
 		}
 		catch {
 			// If file can't be read, return empty string

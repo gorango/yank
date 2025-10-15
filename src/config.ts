@@ -6,7 +6,8 @@ import { loadToml } from 'cosmiconfig-toml-loader'
 import fg from 'fast-glob'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
-import { BINARY_FILE_EXTENSIONS, DEFAULT_EXCLUDE_PATTERNS } from './defaults.js'
+ import { BINARY_FILE_EXTENSIONS, DEFAULT_EXCLUDE_PATTERNS } from './defaults.js'
+ import { languageMap } from './language-map.js'
 
 const moduleName = 'yank'
 export const DEFAULT_CODE_TEMPLATE = '```{language}\n{content}```'
@@ -126,9 +127,21 @@ export class YankConfig {
 		if (fileConfig.debug !== undefined && typeof fileConfig.debug !== 'boolean') {
 			throw new Error('Configuration error: debug must be a boolean')
 		}
-		if (fileConfig.langMap !== undefined && (typeof fileConfig.langMap !== 'object' || fileConfig.langMap === null || Array.isArray(fileConfig.langMap))) {
-			throw new Error('Configuration error: langMap must be an object')
-		}
+ 		if (fileConfig.langMap !== undefined && (typeof fileConfig.langMap !== 'object' || fileConfig.langMap === null || Array.isArray(fileConfig.langMap))) {
+ 			throw new Error('Configuration error: langMap must be an object')
+ 		}
+
+ 		// Validate langMap values
+ 		if (fileConfig.langMap) {
+ 			for (const [key, value] of Object.entries(fileConfig.langMap)) {
+ 				if (typeof value !== 'string') {
+ 					throw new Error(`Configuration error: langMap value for '${key}' must be a string`)
+ 				}
+ 				if (!Object.values(languageMap).includes(value)) {
+ 					throw new Error(`Configuration error: langMap value '${value}' for '${key}' is not a valid language`)
+ 				}
+ 			}
+ 		}
 
 		const argv = await yargs(hideBin(process.argv))
 			.usage('Usage: $0 [paths...] [options]')
@@ -262,18 +275,30 @@ export class YankConfig {
 		const binaryIgnorePattern = `**/*.{${BINARY_FILE_EXTENSIONS.join(',')}}`
 		const excludes = [...DEFAULT_EXCLUDE_PATTERNS, binaryIgnorePattern, ...argv.exclude]
 
-		const config = new YankConfig({
-			clip: argv.clip,
-			include: includes,
-			exclude: excludes,
-			fileTemplate: argv.fileTemplate,
-			codeTemplate: argv.codeTemplate,
-			stats: argv.stats || argv.tokens,
-			tokens: argv.tokens,
-			debug: argv.debug,
-			preview: argv.preview,
-			langMap: argv.langMap,
-		})
+ 		// Validate argv.langMap
+ 		if (argv.langMap) {
+ 			for (const [key, value] of Object.entries(argv.langMap)) {
+ 				if (typeof value !== 'string') {
+ 					throw new Error(`Configuration error: langMap value for '${key}' must be a string`)
+ 				}
+ 				if (!Object.values(languageMap).includes(value)) {
+ 					throw new Error(`Configuration error: langMap value '${value}' for '${key}' is not a valid language`)
+ 				}
+ 			}
+ 		}
+
+ 		const config = new YankConfig({
+ 			clip: argv.clip,
+ 			include: includes,
+ 			exclude: excludes,
+ 			fileTemplate: argv.fileTemplate,
+ 			codeTemplate: argv.codeTemplate,
+ 			stats: argv.stats || argv.tokens,
+ 			tokens: argv.tokens,
+ 			debug: argv.debug,
+ 			preview: argv.preview,
+ 			langMap: argv.langMap || {},
+ 		})
 
 		if (!config.fileTemplate.includes('{filePath}')) {
 			throw new Error(

@@ -23,16 +23,23 @@ const virtualFs = new Map<string, string>()
 const MOCK_CWD = '/Users/test/project'
 
 beforeEach(() => {
-	vi.resetAllMocks()
-	virtualFs.clear()
-	vi.mocked(process.cwd).mockReturnValue(MOCK_CWD)
-	vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
-		const resolvedPath = filePath.toString()
-		if (virtualFs.has(resolvedPath))
-			return virtualFs.get(resolvedPath)!
-		throw new Error(`ENOENT: no such file or directory, open '${resolvedPath}'`)
-	})
-})
+ 	vi.resetAllMocks()
+ 	virtualFs.clear()
+ 	vi.mocked(process.cwd).mockReturnValue(MOCK_CWD)
+ 	vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+ 		const resolvedPath = filePath.toString()
+ 		if (virtualFs.has(resolvedPath))
+ 			return virtualFs.get(resolvedPath)!
+ 		throw new Error(`ENOENT: no such file or directory, open '${resolvedPath}'`)
+ 	})
+ 	vi.mocked(fs.stat).mockImplementation(async (filePath) => {
+ 		const resolvedPath = filePath.toString()
+ 		if (virtualFs.has(resolvedPath)) {
+ 			return { isSymbolicLink: () => false } as any
+ 		}
+ 		throw new Error(`ENOENT: no such file or directory, stat '${resolvedPath}'`)
+ 	})
+ })
 
 describe('processFiles', () => {
 	const mockConfig = {
@@ -298,37 +305,68 @@ describe('processFiles with nested .gitignore', () => {
 		expect(result.stats.skippedReasons.get('Permission denied')).toBe(1)
 	})
 
-	it('should log file read errors in debug mode', async () => {
-		const debugConfig = { ...mockConfig, debug: true } as any
+ 	it('should log file read errors in debug mode', async () => {
+ 		const debugConfig = { ...mockConfig, debug: true } as any
 
-		vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
-			const resolvedPath = filePath.toString()
-			if (resolvedPath.includes('fail')) {
-				throw new Error('Permission denied')
-			}
-			if (virtualFs.has(resolvedPath))
-				return virtualFs.get(resolvedPath)!
-			throw new Error(`ENOENT: no such file or directory, open '${resolvedPath}'`)
-		})
+ 		vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+ 			const resolvedPath = filePath.toString()
+ 			if (resolvedPath.includes('fail')) {
+ 				throw new Error('Permission denied')
+ 			}
+ 			if (virtualFs.has(resolvedPath))
+ 				return virtualFs.get(resolvedPath)!
+ 			throw new Error(`ENOENT: no such file or directory, open '${resolvedPath}'`)
+ 		})
 
-		virtualFs.set(`${MOCK_CWD}/src/main.ts`, 'const x = 1;')
-		virtualFs.set(`${MOCK_CWD}/src/fail.txt`, 'should fail')
+ 		virtualFs.set(`${MOCK_CWD}/src/main.ts`, 'const x = 1;')
+ 		virtualFs.set(`${MOCK_CWD}/src/fail.txt`, 'should fail')
 
-		vi.mocked(fg).mockImplementation(async (_patterns) => {
-			return [
-				`${MOCK_CWD}/src/main.ts`,
-				`${MOCK_CWD}/src/fail.txt`,
-			]
-		})
+ 		vi.mocked(fg).mockImplementation(async (_patterns) => {
+ 			return [
+ 				`${MOCK_CWD}/src/main.ts`,
+ 				`${MOCK_CWD}/src/fail.txt`,
+ 			]
+ 		})
 
-		const consoleSpy = vi.spyOn(console, 'debug').mockImplementation(() => {})
+ 		const consoleSpy = vi.spyOn(console, 'debug').mockImplementation(() => {})
 
-		await processFiles(debugConfig)
+ 		await processFiles(debugConfig)
 
-		expect(consoleSpy).toHaveBeenCalledWith(
-			expect.stringContaining('Failed to read src/fail.txt: Permission denied'),
-		)
+ 		expect(consoleSpy).toHaveBeenCalledWith(
+ 			expect.stringContaining('Failed to read src/fail.txt: Permission denied'),
+ 		)
 
-		consoleSpy.mockRestore()
-	})
+ 		consoleSpy.mockRestore()
+ 	})
+
+ 	it('should handle symlinks correctly', async () => {
+ 		vi.mocked(fs.stat).mockImplementation(async (filePath) => {
+ 			const resolvedPath = filePath.toString()
+ 			if (resolvedPath === `${MOCK_CWD}/src/symlink.ts`) {
+ 				return { isSymbolicLink: () => true } as any
+ 			}
+ 			if (virtualFs.has(resolvedPath)) {
+ 				return { isSymbolicLink: () => false } as any
+ 			}
+ 			throw new Error(`ENOENT: no such file or directory, stat '${resolvedPath}'`)
+ 		})
+
+ 		virtualFs.set(`${MOCK_CWD}/src/main.ts`, 'const x = 1;')
+ 		virtualFs.set(`${MOCK_CWD}/src/symlink.ts`, 'const y = 2;') // Content of the symlink target
+
+ 		vi.mocked(fg).mockImplementation(async (_patterns) => {
+ 			return [
+ 				`${MOCK_CWD}/src/main.ts`,
+ 				`${MOCK_CWD}/src/symlink.ts`,
+ 			]
+ 		})
+
+ 		const result = await processFiles(mockConfig)
+
+ 		expect(result.files).toHaveLength(2)
+ 		expect(result.files.map(f => f.relPath)).toEqual(['src/main.ts', 'src/symlink.ts'])
+ 		expect(result.stats.totalFiles).toBe(2)
+ 		expect(result.stats.processedFiles).toBe(2)
+ 		expect(result.stats.skippedFiles).toBe(0)
+ 	})
 })
