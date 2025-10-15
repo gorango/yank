@@ -44,7 +44,7 @@ yank
 | `--stats` | `-s` | Print summary statistics to `stderr`. | `false` |
 | `--tokens` | `-t` | Print number of tokens in `stats`. | `false` |
 | `--config` | `-C` | Path to a custom configuration file. | |
-| `--lang-map` | | JSON string of language overrides (e.g., `'{"LICENSE":"text"}'`). | `{}` |
+| `--lang-map` | | JSON string of language overrides (e.g., `'{"LICENSE":"text"}'`), with values validated against supported languages. | `{}` |
 | `--max-size` | | Maximum file size in bytes to process. Files larger than this are skipped. | `0` (no limit) |
 | `--debug` | | Enable verbose debug logging. | `false` |
 | `--preview` | `-p` | Enable interactive preview mode to select files before processing. | `false` |
@@ -140,6 +140,8 @@ For files without extensions, `yank` inspects the first line for shebang pattern
 - `#!/usr/bin/env python3` → `python`
 - `#!/usr/bin/node` → `javascript`
 - `#!/usr/bin/env ruby` → `ruby`
+- `#!/usr/bin/env deno` → `typescript`
+- `#!/usr/bin/env bun` → `javascript`
 - And more...
 
 ### Language Mapping
@@ -240,6 +242,10 @@ The following extensions are treated as binary and excluded by default:
 
 You can override this behavior by using include patterns that explicitly match binary files, but they will still be processed as text if readable.
 
+## Symlink Handling
+
+`yank` does not follow symbolic links (due to `followSymbolicLinks: false` in file discovery). If symlinks are needed, use explicit include patterns. Use `--debug` to diagnose symlink-related issues.
+
 ## Ignore Rules Handling
 
 `yank` processes `.gitignore` files hierarchically to determine which files to include or exclude. This ensures that nested `.gitignore` rules are properly respected, including negations and self-exclusion behavior.
@@ -323,10 +329,11 @@ In this structure:
 - Check for syntax errors in your include/exclude patterns, such as unclosed brackets `[]`, braces `{}`, or parentheses `()`.
 - `yank` validates patterns and will exit with an error if they are malformed.
 
-**Skipped files:**
-- Files that cannot be read (e.g., due to permissions or being binary) are skipped.
-- When `--stats` is enabled, skipped files are counted and reasons are reported in the output.
-- Use `--debug` for detailed error messages about skipped files.
+ **Skipped files:**
+ - Files that cannot be read (e.g., due to permissions or being binary) are skipped.
+ - When `--stats` is enabled, skipped files are counted and reasons are reported in the output.
+ - Use `--stats` to view skipped file counts and reasons, even without `--debug`, for quick diagnostics.
+ - Use `--debug` for detailed error messages about skipped files.
 
 **Performance with many `.gitignore` files:**
 - `yank` efficiently processes `.gitignore` hierarchies.

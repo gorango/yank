@@ -7,6 +7,7 @@ import fg from 'fast-glob'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 import { BINARY_FILE_EXTENSIONS, DEFAULT_EXCLUDE_PATTERNS } from './defaults.js'
+import { languageMap } from './language-map.js'
 
 const moduleName = 'yank'
 export const DEFAULT_CODE_TEMPLATE = '```{language}\n{content}```'
@@ -101,7 +102,7 @@ export class YankConfig {
 
 		const fileConfig = configFileResult?.config || {}
 
-		// Validate fileConfig fields
+		// validate fileConfig fields
 		if (fileConfig.include !== undefined && !Array.isArray(fileConfig.include)) {
 			throw new Error('Configuration error: include must be an array of strings')
 		}
@@ -128,6 +129,18 @@ export class YankConfig {
 		}
 		if (fileConfig.langMap !== undefined && (typeof fileConfig.langMap !== 'object' || fileConfig.langMap === null || Array.isArray(fileConfig.langMap))) {
 			throw new Error('Configuration error: langMap must be an object')
+		}
+
+		// Validate langMap values
+		if (fileConfig.langMap) {
+			for (const [key, value] of Object.entries(fileConfig.langMap)) {
+				if (typeof value !== 'string') {
+					throw new Error(`Configuration error: langMap value for '${key}' must be a string`)
+				}
+				if (!Object.values(languageMap).includes(value)) {
+					throw new Error(`Configuration error: langMap value '${value}' for '${key}' is not a valid language`)
+				}
+			}
 		}
 
 		const argv = await yargs(hideBin(process.argv))
@@ -239,7 +252,7 @@ export class YankConfig {
 		const positionalArgs = argv._.map(String)
 		const rawIncludePatterns = [...positionalArgs, ...argv.include]
 
-		// Validate glob patterns for basic syntax errors
+		// validate glob patterns for basic syntax errors
 		for (const pattern of rawIncludePatterns) {
 			if (pattern.includes('[') && !pattern.includes(']')) {
 				throw new Error(`Invalid glob pattern: ${pattern}. Unclosed character class.`)
@@ -262,6 +275,18 @@ export class YankConfig {
 		const binaryIgnorePattern = `**/*.{${BINARY_FILE_EXTENSIONS.join(',')}}`
 		const excludes = [...DEFAULT_EXCLUDE_PATTERNS, binaryIgnorePattern, ...argv.exclude]
 
+		// validate argv.langMap
+		if (argv.langMap) {
+			for (const [key, value] of Object.entries(argv.langMap)) {
+				if (typeof value !== 'string') {
+					throw new Error(`Configuration error: langMap value for '${key}' must be a string`)
+				}
+				if (!Object.values(languageMap).includes(value)) {
+					throw new Error(`Configuration error: langMap value '${value}' for '${key}' is not a valid language`)
+				}
+			}
+		}
+
 		const config = new YankConfig({
 			clip: argv.clip,
 			include: includes,
@@ -272,7 +297,7 @@ export class YankConfig {
 			tokens: argv.tokens,
 			debug: argv.debug,
 			preview: argv.preview,
-			langMap: argv.langMap,
+			langMap: argv.langMap || {},
 		})
 
 		if (!config.fileTemplate.includes('{filePath}')) {

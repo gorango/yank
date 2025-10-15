@@ -84,48 +84,33 @@ export const languageMap: Record<string, string> = {
 export async function getLanguage(filePath: string): Promise<string> {
 	const filename = path.basename(filePath)
 
-	// Check for exact filename matches first
-	if (languageMap[filename])
-		return languageMap[filename]
+	if (languageMap[filename]) return languageMap[filename]
 
 	const extension = path.extname(filename).slice(1).toLowerCase()
 
-	// Check for extension matches (case-insensitive)
-	if (extension && languageMap[extension])
-		return languageMap[extension]
+	if (extension && languageMap[extension]) return languageMap[extension]
 
-	// For files without extensions, try shebang detection
 	if (!extension) {
 		try {
 			const content = await fs.readFile(filePath, 'utf-8')
 			const firstLine = content.split('\n')[0]?.trim()
 
 			if (firstLine?.startsWith('#!')) {
-				// Check for common interpreters in shebang
-				if (firstLine.includes('bash') || firstLine.includes('sh'))
-					return 'bash'
-				if (firstLine.includes('python') || firstLine.includes('python3'))
-					return 'python'
-				if (firstLine.includes('node') || firstLine.includes('nodejs'))
-					return 'javascript'
-				if (firstLine.includes('ruby'))
-					return 'ruby'
-				if (firstLine.includes('perl'))
-					return 'perl'
-				if (firstLine.includes('php'))
-					return 'php'
-				if (firstLine.includes('lua'))
-					return 'lua'
-				if (firstLine.includes('fish'))
-					return 'fish'
-				if (firstLine.includes('zsh'))
-					return 'zsh'
-				if (firstLine.includes('powershell') || firstLine.includes('pwsh'))
-					return 'powershell'
+				if (firstLine.includes('bash') || firstLine.includes('sh')) return 'bash'
+				if (firstLine.includes('python') || firstLine.includes('python3')) return 'python'
+				if (firstLine.includes('node') || firstLine.includes('nodejs')) return 'javascript'
+				if (firstLine.includes('ruby')) return 'ruby'
+				if (firstLine.includes('perl')) return 'perl'
+				if (firstLine.includes('php')) return 'php'
+				if (firstLine.includes('lua')) return 'lua'
+				if (firstLine.includes('fish')) return 'fish'
+				if (firstLine.includes('zsh')) return 'zsh'
+				if (firstLine.includes('powershell') || firstLine.includes('pwsh')) return 'powershell'
+				if (firstLine.includes('deno')) return 'typescript'
+				if (firstLine.includes('bun')) return 'javascript'
 			}
-		}
-		catch {
-			// If file can't be read, return empty string
+		} catch {
+			// file can't be read
 		}
 	}
 
