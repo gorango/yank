@@ -24,7 +24,7 @@ async function main() {
 			process.exit(1)
 		}
 
-		const output = generateOutput(files, config)
+		const output = await generateOutput(files, config)
 
 		if (config.clip) {
 			await clipboard.write(output)

@@ -1,4 +1,3 @@
-import type { YankConfigCtor } from './types'
 import fs from 'node:fs/promises'
 import process from 'node:process'
 
@@ -36,12 +35,17 @@ beforeEach(() => {
 })
 
 describe('processFiles', () => {
-	const mockConfig: YankConfigCtor = {
+	const mockConfig = {
+		clip: false,
 		include: ['**/*'],
 		exclude: ['node_modules/**'],
-		debug: false,
+		fileTemplate: '--- {filePath} ---',
+		codeTemplate: '```{language}\n{content}\n```',
+		stats: false,
 		tokens: false,
-	} as YankConfigCtor
+		debug: false,
+		langMap: {},
+	} as any
 
 	it('should find, read, filter, and count lines correctly', async () => {
 		virtualFs.set(`${MOCK_CWD}/src/main.ts`, 'const x = 1;\nconst y = 2;')
@@ -101,16 +105,17 @@ describe('processFiles', () => {
 })
 
 describe('processFiles with nested .gitignore', () => {
-	const mockConfig: YankConfigCtor = {
+	const mockConfig = {
+		clip: false,
 		include: ['**/*'],
 		exclude: [],
-		debug: false,
-		tokens: false,
-		clip: false,
 		fileTemplate: '--- {filePath} ---',
 		codeTemplate: '```{language}\n{content}\n```',
 		stats: false,
-	}
+		tokens: false,
+		debug: false,
+		langMap: {},
+	} as any
 
 	it('should handle multiple nested .gitignore files with conflicting negations', async () => {
 		// Root ignores all logs
@@ -294,7 +299,7 @@ describe('processFiles with nested .gitignore', () => {
 	})
 
 	it('should log file read errors in debug mode', async () => {
-		const debugConfig = { ...mockConfig, debug: true }
+		const debugConfig = { ...mockConfig, debug: true } as any
 
 		vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
 			const resolvedPath = filePath.toString()

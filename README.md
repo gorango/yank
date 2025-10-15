@@ -41,6 +41,7 @@ yank
 | `--stats` | `-s` | Print summary statistics to `stderr`. | `false` |
 | `--tokens` | `-t` | Print number of tokens in `stats`. | `false` |
 | `--config` | `-C` | Path to a custom configuration file. | |
+| `--lang-map` | | JSON string of language overrides (e.g., `'{"LICENSE":"text"}'`). | `{}` |
 | `--debug` | | Enable verbose debug logging. | `false` |
 | `--help` | `-h` | Show the help message. | |
 | `--version` | `-v` | Show the version number. | |
@@ -80,7 +81,74 @@ codeTemplate = """
 {content}
 ```
 """
- ````
+
+# Override language detection for specific files
+languageOverrides = { LICENSE = "text" }
+````
+
+## Language Detection
+
+`yank` automatically detects the programming language of files for syntax highlighting in code blocks. It uses multiple strategies to determine the correct language:
+
+### Automatic Detection
+
+1. **File Extensions**: Maps common extensions (`.ts`, `.js`, `.py`, etc.) to their corresponding languages
+2. **Special Filenames**: Recognizes files like `Dockerfile`, `Makefile`, `Jenkinsfile` by name
+3. **Shebang Detection**: For files without extensions, reads the first line to detect interpreter directives
+
+### Supported Extensions
+
+The following extensions are automatically recognized:
+
+**Web Technologies**: `ts`, `tsx`, `js`, `jsx`, `html`, `css`, `scss`, `less`, `json`, `md`, `mdx`, `yaml`, `yml`, `toml`, `xml`, `svg`, `svelte`, `vue`
+
+**Backend & Systems**: `py`, `rb`, `go`, `rs`, `php`, `java`, `kt`, `kts`, `cs`, `fs`, `cpp`, `c`, `h`, `hpp`, `lua`, `pl`, `swift`, `scala`, `ex`, `exs`, `cr`
+
+**Shell & Config**: `sh`, `bash`, `zsh`, `fish`, `ps1`, `dockerfile`, `tf`, `hcl`, `nginx`, `conf`, `ini`
+
+**SQL & Data**: `sql`, `graphql`, `gql`
+
+**Other**: `r`, `dart`, `hs`, `erl`, `clj`, `elm`
+
+### Shebang Detection
+
+For files without extensions, `yank` inspects the first line for shebang patterns:
+
+- `#!/bin/bash` → `bash`
+- `#!/usr/bin/env python3` → `python`
+- `#!/usr/bin/node` → `javascript`
+- `#!/usr/bin/env ruby` → `ruby`
+- And more...
+
+### Language Mapping
+
+You can override automatic detection using the `--lang-map` option or in your config file:
+
+```sh
+# Command line usage
+yank --lang-map '{"LICENSE":"text","Makefile":"makefile"}'
+```
+
+```toml
+# In yank.toml
+languageOverrides = { LICENSE = "text", Makefile = "makefile" }
+```
+
+```json
+// In yank.json
+{
+  "languageOverrides": {
+    "LICENSE": "text",
+    "Makefile": "makefile"
+  }
+}
+```
+
+**Override Priority**: Filename matches take precedence over full path matches.
+
+### Case-Insensitive Extensions
+
+Extensions are handled case-insensitively (e.g., `.R` and `.r` both map to `r` language).
 
 ## Ignore Rules Handling
 

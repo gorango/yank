@@ -31,6 +31,7 @@ export class YankConfig {
 	readonly stats: boolean
 	readonly tokens: boolean
 	readonly debug: boolean
+	readonly langMap: Record<string, string>
 
 	private constructor(init: YankConfigCtor) {
 		this.clip = init.clip
@@ -41,6 +42,7 @@ export class YankConfig {
 		this.stats = init.stats
 		this.tokens = init.tokens
 		this.debug = init.debug
+		this.langMap = init.langMap || {}
 	}
 
 	public static async init(): Promise<YankConfig> {
@@ -153,6 +155,18 @@ export class YankConfig {
 				description: 'Enable debug output.',
 				default: false,
 			})
+			.option('lang-map', {
+				type: 'string',
+				description: 'JSON string of language overrides (e.g., \'{"LICENSE":"text"}\')',
+				coerce: (value: string) => {
+					try {
+						return JSON.parse(value)
+					}
+					catch {
+						throw new Error('Invalid JSON for --lang-map')
+					}
+				},
+			})
 			.config(fileConfig)
 			.help()
 			.alias('h', 'help')
@@ -220,6 +234,7 @@ export class YankConfig {
 			stats: argv.stats || argv.tokens,
 			tokens: argv.tokens,
 			debug: argv.debug,
+			langMap: argv.langMap,
 		})
 
 		if (!config.fileTemplate.includes('{filePath}')) {

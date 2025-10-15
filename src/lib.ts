@@ -7,14 +7,22 @@ import { getLanguage } from './language-map.js'
  * Generates the final output string by applying the configured templates
  * to each processed file.
  */
-export function generateOutput(
+export async function generateOutput(
 	files: ProcessedFile[],
 	config: YankConfig,
-): string {
+): Promise<string> {
 	const outputChunks: string[] = []
 
 	for (const file of files) {
-		const language = getLanguage(file.relPath)
+		// Check for language overrides first
+		const filename = file.relPath.split('/').pop() || file.relPath
+		let language = config.langMap[filename] || config.langMap[file.relPath]
+
+		// If no override, use automatic detection
+		if (!language) {
+			language = await getLanguage(file.relPath)
+		}
+
 		const isMarkdown = language === 'markdown'
 
 		const header = config.fileTemplate.replace('{filePath}', file.relPath)
