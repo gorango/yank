@@ -1,6 +1,6 @@
 import type { Ignore } from 'ignore'
 import type { YankConfig } from './config.js'
-import type { ProcessedFile } from './types.js'
+import type { FileProcessingStats, ProcessedFile } from './types.js'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
@@ -42,7 +42,7 @@ async function buildIgnoreHierarchy(config: YankConfig): Promise<Map<string, Ign
 	return dirToIgnorer
 }
 
-export async function processFiles(config: YankConfig): Promise<ProcessedFile[]> {
+export async function processFiles(config: YankConfig): Promise<{ files: ProcessedFile[], stats: FileProcessingStats }> {
 	const cwd = process.cwd()
 	const dirToIgnorer = await buildIgnoreHierarchy(config)
 
@@ -93,14 +93,37 @@ export async function processFiles(config: YankConfig): Promise<ProcessedFile[]>
 		console.debug(`Files found: ${allFiles.length}. After ignore rules: ${filteredPaths.length}.`)
 	}
 
+	const skippedReasons = new Map<string, number>()
+	let processedCount = 0
+	let skippedCount = 0
+
 	const filePromises = filteredPaths.map(async (absPath) => {
 		try {
 			const content = await fs.readFile(absPath, 'utf-8')
 			const relPath = path.relative(cwd, absPath).replace(/\\/g, '/')
+			processedCount++
 			return { relPath, content, lineCount: content.split('\n').length }
 		}
-		catch { return null }
+		catch (error) {
+			skippedCount++
+			const reason = error instanceof Error ? error.message : 'Unknown error'
+			skippedReasons.set(reason, (skippedReasons.get(reason) || 0) + 1)
+
+			if (config.debug) {
+				console.debug(`Failed to read ${path.relative(cwd, absPath)}: ${reason}`)
+			}
+			return null
+		}
 	})
 
-	return (await Promise.all(filePromises)).filter(Boolean) as ProcessedFile[]
+	const processedFiles = (await Promise.all(filePromises)).filter(Boolean) as ProcessedFile[]
+
+	const stats: FileProcessingStats = {
+		totalFiles: filteredPaths.length,
+		processedFiles: processedCount,
+		skippedFiles: skippedCount,
+		skippedReasons,
+	}
+
+	return { files: processedFiles, stats }
 }

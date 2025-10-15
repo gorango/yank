@@ -59,15 +59,19 @@ describe('processFiles', () => {
 			]
 		})
 
-		const processed = await processFiles(mockConfig)
+		const result = await processFiles(mockConfig)
 
-		expect(processed).toHaveLength(2)
+		expect(result.files).toHaveLength(2)
 
-		expect(processed[0].relPath).toBe('package.json')
-		expect(processed[0].lineCount).toBe(1)
+		expect(result.files[0].relPath).toBe('package.json')
+		expect(result.files[0].lineCount).toBe(1)
 
-		expect(processed[1].relPath).toBe('src/main.ts')
-		expect(processed[1].lineCount).toBe(2)
+		expect(result.files[1].relPath).toBe('src/main.ts')
+		expect(result.files[1].lineCount).toBe(2)
+
+		expect(result.stats.totalFiles).toBe(2)
+		expect(result.stats.processedFiles).toBe(2)
+		expect(result.stats.skippedFiles).toBe(0)
 	})
 
 	it('should respect .gitignore rules', async () => {
@@ -85,10 +89,14 @@ describe('processFiles', () => {
 			]
 		})
 
-		const processed = await processFiles(mockConfig)
+		const result = await processFiles(mockConfig)
 
-		expect(processed).toHaveLength(1)
-		expect(processed[0].relPath).toBe('src/main.ts')
+		expect(result.files).toHaveLength(1)
+		expect(result.files[0].relPath).toBe('src/main.ts')
+
+		expect(result.stats.totalFiles).toBe(1)
+		expect(result.stats.processedFiles).toBe(1)
+		expect(result.stats.skippedFiles).toBe(0)
 	})
 })
 
@@ -142,8 +150,8 @@ describe('processFiles with nested .gitignore', () => {
 			]
 		})
 
-		const processed = await processFiles(mockConfig)
-		const paths = processed.map(p => p.relPath).sort()
+		const result = await processFiles(mockConfig)
+		const paths = result.files.map(p => p.relPath).sort()
 
 		// Should include: root.log (ignored), src/server.log (un-ignored), src/subdir/app.log (re-ignored), src/subdir/nested/debug.log (un-ignored again)
 		// All .gitignore files are included due to self-exclusion handling
@@ -155,6 +163,10 @@ describe('processFiles with nested .gitignore', () => {
 			'src/subdir/nested/.gitignore',
 			'src/subdir/nested/debug.log',
 		])
+
+		expect(result.stats.totalFiles).toBe(6)
+		expect(result.stats.processedFiles).toBe(6)
+		expect(result.stats.skippedFiles).toBe(0)
 	})
 
 	it('should handle empty .gitignore files and invalid syntax gracefully', async () => {
@@ -175,12 +187,16 @@ describe('processFiles with nested .gitignore', () => {
 			return [`${MOCK_CWD}/test.txt`]
 		})
 
-		const processed = await processFiles(mockConfig)
-		const paths = processed.map(p => p.relPath).sort()
+		const result = await processFiles(mockConfig)
+		const paths = result.files.map(p => p.relPath).sort()
 
 		// Empty .gitignore files are excluded by default (no self-exclusion for empty files)
 		// Only the test.txt file should be included
 		expect(paths).toEqual(['test.txt'])
+
+		expect(result.stats.totalFiles).toBe(1)
+		expect(result.stats.processedFiles).toBe(1)
+		expect(result.stats.skippedFiles).toBe(0)
 	})
 
 	it('should handle deeply nested .gitignore files (5+ levels)', async () => {
@@ -205,8 +221,8 @@ describe('processFiles with nested .gitignore', () => {
 			]
 		})
 
-		const processed = await processFiles(mockConfig)
-		const paths = processed.map(p => p.relPath).sort()
+		const result = await processFiles(mockConfig)
+		const paths = result.files.map(p => p.relPath).sort()
 
 		// The root .gitignore excludes temp/, so temp/file.txt is excluded
 		// The deep negation only affects files in the deep directory, so only the nested file is included
@@ -215,6 +231,10 @@ describe('processFiles with nested .gitignore', () => {
 			`${deepPath}/.gitignore`,
 			`${deepPath}/temp/nested.txt`,
 		])
+
+		expect(result.stats.totalFiles).toBe(3)
+		expect(result.stats.processedFiles).toBe(3)
+		expect(result.stats.skippedFiles).toBe(0)
 	})
 
 	it('should handle .gitignore files that exclude themselves', async () => {
@@ -229,10 +249,81 @@ describe('processFiles with nested .gitignore', () => {
 			return [`${MOCK_CWD}/.gitignore`, `${MOCK_CWD}/src/.gitignore`]
 		})
 
-		const processed = await processFiles(mockConfig)
-		const paths = processed.map(p => p.relPath).sort()
+		const result = await processFiles(mockConfig)
+		const paths = result.files.map(p => p.relPath).sort()
 
 		// .gitignore files that exclude themselves are excluded (no self-exclusion handling for explicit exclusions)
 		expect(paths).toEqual([])
+
+		expect(result.stats.totalFiles).toBe(0)
+		expect(result.stats.processedFiles).toBe(0)
+		expect(result.stats.skippedFiles).toBe(0)
+	})
+
+	it('should handle file read errors and collect stats', async () => {
+		// Set up files that will fail to read
+		vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+			const resolvedPath = filePath.toString()
+			if (resolvedPath.includes('fail')) {
+				throw new Error('Permission denied')
+			}
+			if (virtualFs.has(resolvedPath))
+				return virtualFs.get(resolvedPath)!
+			throw new Error(`ENOENT: no such file or directory, open '${resolvedPath}'`)
+		})
+
+		virtualFs.set(`${MOCK_CWD}/src/main.ts`, 'const x = 1;')
+		virtualFs.set(`${MOCK_CWD}/src/fail.txt`, 'should fail')
+
+		vi.mocked(fg).mockImplementation(async (_patterns) => {
+			return [
+				`${MOCK_CWD}/src/main.ts`,
+				`${MOCK_CWD}/src/fail.txt`,
+			]
+		})
+
+		const result = await processFiles(mockConfig)
+
+		expect(result.files).toHaveLength(1)
+		expect(result.files[0].relPath).toBe('src/main.ts')
+
+		expect(result.stats.totalFiles).toBe(2)
+		expect(result.stats.processedFiles).toBe(1)
+		expect(result.stats.skippedFiles).toBe(1)
+		expect(result.stats.skippedReasons.get('Permission denied')).toBe(1)
+	})
+
+	it('should log file read errors in debug mode', async () => {
+		const debugConfig = { ...mockConfig, debug: true }
+
+		vi.mocked(fs.readFile).mockImplementation(async (filePath) => {
+			const resolvedPath = filePath.toString()
+			if (resolvedPath.includes('fail')) {
+				throw new Error('Permission denied')
+			}
+			if (virtualFs.has(resolvedPath))
+				return virtualFs.get(resolvedPath)!
+			throw new Error(`ENOENT: no such file or directory, open '${resolvedPath}'`)
+		})
+
+		virtualFs.set(`${MOCK_CWD}/src/main.ts`, 'const x = 1;')
+		virtualFs.set(`${MOCK_CWD}/src/fail.txt`, 'should fail')
+
+		vi.mocked(fg).mockImplementation(async (_patterns) => {
+			return [
+				`${MOCK_CWD}/src/main.ts`,
+				`${MOCK_CWD}/src/fail.txt`,
+			]
+		})
+
+		const consoleSpy = vi.spyOn(console, 'debug').mockImplementation(() => {})
+
+		await processFiles(debugConfig)
+
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining('Failed to read src/fail.txt: Permission denied'),
+		)
+
+		consoleSpy.mockRestore()
 	})
 })

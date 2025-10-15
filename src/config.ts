@@ -188,6 +188,19 @@ export class YankConfig {
 		const positionalArgs = argv._.map(String)
 		const rawIncludePatterns = [...positionalArgs, ...argv.include]
 
+		// Validate glob patterns for basic syntax errors
+		for (const pattern of rawIncludePatterns) {
+			if (pattern.includes('[') && !pattern.includes(']')) {
+				throw new Error(`Invalid glob pattern: ${pattern}. Unclosed character class.`)
+			}
+			if (pattern.includes('{') && !pattern.includes('}')) {
+				throw new Error(`Invalid glob pattern: ${pattern}. Unclosed brace expansion.`)
+			}
+			if (pattern.includes('(') && !pattern.includes(')')) {
+				throw new Error(`Invalid glob pattern: ${pattern}. Unclosed group.`)
+			}
+		}
+
 		let includes: string[]
 
 		if (rawIncludePatterns.length > 0)

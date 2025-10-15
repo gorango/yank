@@ -4,6 +4,13 @@ export interface ProcessedFile {
 	lineCount: number
 }
 
+export interface FileProcessingStats {
+	totalFiles: number
+	processedFiles: number
+	skippedFiles: number
+	skippedReasons: Map<string, number>
+}
+
 export interface YankConfigCtor {
 	clip: boolean
 	include: string[]

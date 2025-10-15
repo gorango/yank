@@ -152,3 +152,24 @@ In this structure:
 - `yank` efficiently processes `.gitignore` hierarchies
 - Deeply nested structures (5+ levels) are fully supported
 - Invalid `.gitignore` syntax is handled gracefully without breaking the process
+
+**Error Handling and Debugging:**
+
+**File reading errors:**
+- Files that cannot be read (e.g., permission denied) are silently skipped in normal mode
+- Use `--debug` flag to see detailed error messages for failed file reads
+- When `--stats` is enabled, skipped files are counted and reasons are reported
+
+**Glob pattern validation:**
+- Invalid glob patterns (unclosed brackets `[]`, braces `{}`, or parentheses `()`) will cause `yank` to exit with an error
+- Check your include/exclude patterns for syntax errors
+
+**Debug mode:**
+- Use `--debug` flag to enable verbose logging
+- Shows detailed information about file discovery, ignore rule processing, and error details
+- Includes stack traces for errors when available
+
+**Common issues:**
+- **"No files matched"**: Check your include patterns and ensure files exist
+- **"Permission denied"**: Some files may be inaccessible; use `--debug` to see which ones
+- **"Invalid glob pattern"**: Check for syntax errors in your patterns

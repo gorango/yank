@@ -9,14 +9,16 @@ import { processFiles } from './file-processor.js'
 import { generateOutput } from './lib.js'
 
 async function main() {
+	let config: YankConfig | undefined
+
 	try {
-		const config = await YankConfig.init()
+		config = await YankConfig.init()
 		if (config.debug) {
 			console.debug('Yank starting with configuration:')
 			console.debug(inspect(config, { depth: null, colors: true, breakLength: 120 }))
 		}
 
-		const files = await processFiles(config)
+		const { files, stats } = await processFiles(config)
 		if (files.length === 0) {
 			console.error('No files matched the include/ignore patterns.')
 			process.exit(1)
@@ -40,6 +42,12 @@ async function main() {
 			console.error(`Size: ${size}`)
 			console.error(`Files: ${files.length}`)
 			console.error(`Lines: ${totalLines.toLocaleString()}`)
+			if (stats.skippedFiles > 0) {
+				console.error(`Skipped Files: ${stats.skippedFiles}`)
+				for (const [reason, count] of stats.skippedReasons) {
+					console.error(`  ${reason}: ${count}`)
+				}
+			}
 			if (config.tokens) {
 				let tokenCount = 0
 				const encoding = get_encoding('cl100k_base')
@@ -54,10 +62,10 @@ async function main() {
 		}
 	}
 	catch (error) {
-		if (error instanceof Error)
-			console.error(`Error: ${error.message}`)
-		else
-			console.error('An unknown error occurred.')
+		console.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+		if (config?.debug && error instanceof Error) {
+			console.error(error.stack)
+		}
 		process.exit(1)
 	}
 }

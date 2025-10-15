@@ -92,6 +92,21 @@ describe('YankConfig.init', () => {
 		const config = await YankConfig.init()
 		expect(config.include).toEqual(['src/**/*', 'README.md', 'lib/**/*.ts'])
 	})
+
+	it('should throw error for invalid glob patterns with unclosed brackets', async () => {
+		argvSpy.mockReturnValue(['node', 'yank', '--include', 'src/[unclosed'])
+		await expect(YankConfig.init()).rejects.toThrow('Invalid glob pattern: src/[unclosed. Unclosed character class.')
+	})
+
+	it('should throw error for invalid glob patterns with unclosed braces', async () => {
+		argvSpy.mockReturnValue(['node', 'yank', '--include', 'src/{unclosed'])
+		await expect(YankConfig.init()).rejects.toThrow('Invalid glob pattern: src/{unclosed. Unclosed brace expansion.')
+	})
+
+	it('should throw error for invalid glob patterns with unclosed parentheses', async () => {
+		argvSpy.mockReturnValue(['node', 'yank', '--include', 'src/(unclosed'])
+		await expect(YankConfig.init()).rejects.toThrow('Invalid glob pattern: src/(unclosed. Unclosed group.')
+	})
 })
 
 describe('YankConfig.init with config file loading', () => {
