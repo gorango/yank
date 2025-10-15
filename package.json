@@ -27,6 +27,7 @@
 	"scripts": {
 		"build": "tsup",
 		"lint": "eslint . --fix",
+		"typecheck": "tsc --noEmit",
 		"test": "vitest run"
 	},
 	"dependencies": {
