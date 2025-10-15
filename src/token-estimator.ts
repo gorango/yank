@@ -1,4 +1,3 @@
-// src/token-estimator.ts
 export function estimateTokens(text: string): number {
 	// Split by whitespace and filter out empty strings
 	const words = text.split(/\s+/).filter(Boolean)
@@ -14,18 +13,15 @@ export function estimateTokens(text: string): number {
 
 		// Remove special chars to get clean word for length-based estimation
 		const cleanWord = word.replace(specialCharRegex, '')
-		if (!cleanWord)
-			continue // Skip if only special chars
+		if (!cleanWord) continue // Skip if only special chars
 
 		// Estimate tokens based on word length
 		const len = cleanWord.length
 		if (len < 5) {
 			tokenCount += 1
-		}
-		else if (len <= 10) {
+		} else if (len <= 10) {
 			tokenCount += 1.2 // Approximate subword splitting
-		}
-		else {
+		} else {
 			tokenCount += 1.5 // Long words may split into more tokens
 		}
 	}

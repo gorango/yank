@@ -1,9 +1,10 @@
-import type { ProcessedFile } from './types'
 import { describe, expect, it } from 'vitest'
+import type { YankConfig } from './config'
 import { generateOutput } from './lib'
+import type { ProcessedFile } from './types'
 
 // Mock config objects that match the YankConfig interface
-function createMockConfig(overrides: Partial<any> = {}) {
+function createMockConfig(overrides: Partial<YankConfig> = {}) {
 	return {
 		clip: false,
 		include: [],
@@ -13,6 +14,7 @@ function createMockConfig(overrides: Partial<any> = {}) {
 		stats: false,
 		tokens: false,
 		debug: false,
+		preview: false,
 		langMap: {},
 		...overrides,
 	}
@@ -21,13 +23,17 @@ function createMockConfig(overrides: Partial<any> = {}) {
 describe('generateOutput', () => {
 	const mockFiles: ProcessedFile[] = [
 		{ relPath: 'src/main.ts', content: 'console.log("hello");', lineCount: 1 },
-		{ relPath: 'README.md', content: '# My Project\n\n- Point 1', lineCount: 3 },
+		{
+			relPath: 'README.md',
+			content: '# My Project\n\n- Point 1',
+			lineCount: 3,
+		},
 	]
 
 	it('should generate output using the default templates', async () => {
 		const mockConfig = createMockConfig()
 
-		const output = await generateOutput(mockFiles, mockConfig as any)
+		const output = await generateOutput(mockFiles, mockConfig)
 
 		const expected = `--- src/main.ts ---
 \`\`\`typescript
@@ -49,7 +55,7 @@ console.log("hello");
 			codeTemplate: '[[CODE]]\n{content}\n[[/CODE]]',
 		})
 
-		const output = await generateOutput(mockFiles, mockConfig as any)
+		const output = await generateOutput(mockFiles, mockConfig)
 
 		const expected = `### FILE: src/main.ts
 [[CODE]]
@@ -67,7 +73,7 @@ console.log("hello");
 
 	it('should handle an empty file list', async () => {
 		const mockConfig = createMockConfig()
-		const output = await generateOutput([], mockConfig as any)
+		const output = await generateOutput([], mockConfig)
 		expect(output).toBe('')
 	})
 
@@ -78,7 +84,7 @@ console.log("hello");
 			},
 		})
 
-		const output = await generateOutput(mockFiles, mockConfig as any)
+		const output = await generateOutput(mockFiles, mockConfig)
 
 		const expected = `--- src/main.ts ---
 \`\`\`typescript
@@ -106,7 +112,7 @@ console.log("hello");
 			{ relPath: 'src/README.md', content: '# Nested README', lineCount: 1 },
 		]
 
-		const output = await generateOutput(filesWithNestedReadme, mockConfig as any)
+		const output = await generateOutput(filesWithNestedReadme, mockConfig)
 
 		// Should use the filename override 'text' instead of path override 'markdown'
 		const expected = `--- src/README.md ---

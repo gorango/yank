@@ -1,4 +1,3 @@
-import type { YankConfigCtor } from './types.js'
 import fs from 'node:fs/promises'
 import process from 'node:process'
 import { cosmiconfig } from 'cosmiconfig'
@@ -6,19 +5,18 @@ import { loadToml } from 'cosmiconfig-toml-loader'
 import fg from 'fast-glob'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
- import { BINARY_FILE_EXTENSIONS, DEFAULT_EXCLUDE_PATTERNS } from './defaults.js'
- import { languageMap } from './language-map.js'
+import { BINARY_FILE_EXTENSIONS, DEFAULT_CODE_TEMPLATE, DEFAULT_EXCLUDE_PATTERNS } from './defaults.js'
+import { languageMap } from './language-map.js'
+import type { YankConfigCtor } from './types.js'
 
 const moduleName = 'yank'
-export const DEFAULT_CODE_TEMPLATE = '```{language}\n{content}```'
 
 async function getPackageVersion(): Promise<string> {
 	const packageJsonPath = new URL('../../package.json', import.meta.url)
 	try {
 		const pkg = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'))
 		return pkg.version || '0.0.0'
-	}
-	catch {
+	} catch {
 		return '0.0.0'
 	}
 }
@@ -95,9 +93,7 @@ export class YankConfig {
 		])
 
 		if (customConfigPath && !configFileResult) {
-			throw new Error(
-				`Configuration file not found or failed to load at: ${customConfigPath}`,
-			)
+			throw new Error(`Configuration file not found or failed to load at: ${customConfigPath}`)
 		}
 
 		const fileConfig = configFileResult?.config || {}
@@ -127,21 +123,23 @@ export class YankConfig {
 		if (fileConfig.debug !== undefined && typeof fileConfig.debug !== 'boolean') {
 			throw new Error('Configuration error: debug must be a boolean')
 		}
- 		if (fileConfig.langMap !== undefined && (typeof fileConfig.langMap !== 'object' || fileConfig.langMap === null || Array.isArray(fileConfig.langMap))) {
- 			throw new Error('Configuration error: langMap must be an object')
- 		}
+		if (
+			fileConfig.langMap !== undefined &&
+			(typeof fileConfig.langMap !== 'object' || fileConfig.langMap === null || Array.isArray(fileConfig.langMap))
+		) {
+			throw new Error('Configuration error: langMap must be an object')
+		}
 
- 		// Validate langMap values
- 		if (fileConfig.langMap) {
- 			for (const [key, value] of Object.entries(fileConfig.langMap)) {
- 				if (typeof value !== 'string') {
- 					throw new Error(`Configuration error: langMap value for '${key}' must be a string`)
- 				}
- 				if (!Object.values(languageMap).includes(value)) {
- 					throw new Error(`Configuration error: langMap value '${value}' for '${key}' is not a valid language`)
- 				}
- 			}
- 		}
+		if (fileConfig.langMap) {
+			for (const [key, value] of Object.entries(fileConfig.langMap)) {
+				if (typeof value !== 'string') {
+					throw new Error(`Configuration error: langMap value for '${key}' must be a string`)
+				}
+				if (!Object.values(languageMap).includes(value)) {
+					throw new Error(`Configuration error: langMap value '${value}' for '${key}' is not a valid language`)
+				}
+			}
+		}
 
 		const argv = await yargs(hideBin(process.argv))
 			.usage('Usage: $0 [paths...] [options]')
@@ -205,8 +203,7 @@ export class YankConfig {
 				coerce: (value: string) => {
 					try {
 						return JSON.parse(value)
-					}
-					catch {
+					} catch {
 						throw new Error('Invalid JSON for --lang-map')
 					}
 				},
@@ -231,8 +228,7 @@ export class YankConfig {
 		async function expandDirectoryPatterns(patterns: string[]): Promise<string[]> {
 			return Promise.all(
 				patterns.map(async (pattern) => {
-					if (fg.isDynamicPattern(pattern))
-						return pattern
+					if (fg.isDynamicPattern(pattern)) return pattern
 
 					try {
 						const stats = await fs.stat(pattern)
@@ -241,8 +237,7 @@ export class YankConfig {
 							return `${cleanPattern}/**/*`
 						}
 						return pattern
-					}
-					catch {
+					} catch {
 						return pattern
 					}
 				}),
@@ -267,48 +262,42 @@ export class YankConfig {
 
 		let includes: string[]
 
-		if (rawIncludePatterns.length > 0)
-			includes = await expandDirectoryPatterns(rawIncludePatterns)
-		else
-			includes = ['**/*']
+		if (rawIncludePatterns.length > 0) includes = await expandDirectoryPatterns(rawIncludePatterns)
+		else includes = ['**/*']
 
 		const binaryIgnorePattern = `**/*.{${BINARY_FILE_EXTENSIONS.join(',')}}`
 		const excludes = [...DEFAULT_EXCLUDE_PATTERNS, binaryIgnorePattern, ...argv.exclude]
 
- 		// Validate argv.langMap
- 		if (argv.langMap) {
- 			for (const [key, value] of Object.entries(argv.langMap)) {
- 				if (typeof value !== 'string') {
- 					throw new Error(`Configuration error: langMap value for '${key}' must be a string`)
- 				}
- 				if (!Object.values(languageMap).includes(value)) {
- 					throw new Error(`Configuration error: langMap value '${value}' for '${key}' is not a valid language`)
- 				}
- 			}
- 		}
+		// Validate argv.langMap
+		if (argv.langMap) {
+			for (const [key, value] of Object.entries(argv.langMap)) {
+				if (typeof value !== 'string') {
+					throw new Error(`Configuration error: langMap value for '${key}' must be a string`)
+				}
+				if (!Object.values(languageMap).includes(value)) {
+					throw new Error(`Configuration error: langMap value '${value}' for '${key}' is not a valid language`)
+				}
+			}
+		}
 
- 		const config = new YankConfig({
- 			clip: argv.clip,
- 			include: includes,
- 			exclude: excludes,
- 			fileTemplate: argv.fileTemplate,
- 			codeTemplate: argv.codeTemplate,
- 			stats: argv.stats || argv.tokens,
- 			tokens: argv.tokens,
- 			debug: argv.debug,
- 			preview: argv.preview,
- 			langMap: argv.langMap || {},
- 		})
+		const config = new YankConfig({
+			clip: argv.clip,
+			include: includes,
+			exclude: excludes,
+			fileTemplate: argv.fileTemplate,
+			codeTemplate: argv.codeTemplate,
+			stats: argv.stats || argv.tokens,
+			tokens: argv.tokens,
+			debug: argv.debug,
+			preview: argv.preview,
+			langMap: argv.langMap || {},
+		})
 
 		if (!config.fileTemplate.includes('{filePath}')) {
-			throw new Error(
-				'Configuration error: --file-template must include the {filePath} placeholder.',
-			)
+			throw new Error('Configuration error: --file-template must include the {filePath} placeholder.')
 		}
 		if (!config.codeTemplate.includes('{content}')) {
-			throw new Error(
-				'Configuration error: --code-template must include the {content} placeholder.',
-			)
+			throw new Error('Configuration error: --code-template must include the {content} placeholder.')
 		}
 
 		return config
