@@ -3,10 +3,10 @@ import process from 'node:process'
 import { inspect } from 'node:util'
 import byteSize from 'byte-size'
 import clipboard from 'clipboardy'
-import { get_encoding } from 'tiktoken'
 import { YankConfig } from './config.js'
 import { processFiles } from './file-processor.js'
 import { generateOutput } from './lib.js'
+import { estimateTokens } from './token-estimator.js'
 
 export async function main() {
 	let config: YankConfig | undefined
@@ -73,14 +73,7 @@ export async function main() {
 				}
 			}
 			if (config.tokens) {
-				let tokenCount = 0
-				const encoding = get_encoding('cl100k_base')
-				try {
-					tokenCount = encoding.encode(output).length
-				}
-				finally {
-					encoding.free()
-				}
+				const tokenCount = estimateTokens(output)
 				console.error(`Tokens: ${tokenCount.toLocaleString()}`)
 			}
 		}
