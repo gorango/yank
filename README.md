@@ -1,5 +1,8 @@
 # `yank` - grab and format code
 
+[![NPM Version](https://img.shields.io/npm/v/yank-cli.svg)](https://www.npmjs.com/package/yank-cli)
+[![Codecov](https://img.shields.io/codecov/c/github/gorango/yank/master)](https://codecov.io/github/gorango/yank)
+
 `yank` is a fast and friendly CLI to collect, format, and copy source code from your projects.
 
 ## Get Started
