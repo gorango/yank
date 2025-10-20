@@ -1,23 +1,31 @@
 import process from 'node:process'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { checkbox } from '@inquirer/prompts'
+import clipboard from 'clipboardy'
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import { main } from './main'
 
 vi.mock('./file-processor')
 vi.mock('./lib')
-
+vi.mock('@inquirer/prompts')
 vi.mock('clipboardy', () => ({
-	write: vi.fn().mockRejectedValue(new Error('Clipboard is busy')),
+	default: {
+		write: vi.fn(),
+	},
 }))
 
 describe('main', () => {
+	let mockProcessExit: MockInstance<(code?: string | number | null | undefined) => never>
+	let mockConsoleError: MockInstance<(...data: unknown[]) => void>
+	const mockedCheckbox = vi.mocked(checkbox)
+
 	beforeEach(async () => {
 		vi.resetAllMocks()
 
 		vi.spyOn(process, 'argv', 'get')
-		vi.spyOn(console, 'error').mockImplementation(() => {})
-		vi.spyOn(process, 'exit').mockImplementation((_code) => {
-			throw new Error('process.exit called')
-		})
+		mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+		mockProcessExit = vi
+			.spyOn(process, 'exit')
+			.mockImplementation((() => {}) as (code?: string | number | null | undefined) => never)
 
 		const { processFiles } = vi.mocked(await import('./file-processor'))
 		processFiles.mockResolvedValue({
@@ -41,18 +49,15 @@ describe('main', () => {
 		generateOutput.mockResolvedValue('mocked output')
 	})
 
+	afterEach(() => {
+		vi.restoreAllMocks()
+	})
+
 	it('should handle preview mode with file selection', async () => {
 		vi.spyOn(process, 'argv', 'get').mockReturnValue(['node', 'yank', '--preview'])
-
-		// Mock the dynamic import
-		const mockCheckbox = vi.fn().mockResolvedValue(['0']) // Select first file
-		vi.doMock('@inquirer/prompts', () => ({
-			checkbox: mockCheckbox,
-		}))
-
+		mockedCheckbox.mockResolvedValue(['0'])
 		await main()
-
-		expect(mockCheckbox).toHaveBeenCalledWith({
+		expect(mockedCheckbox).toHaveBeenCalledWith({
 			message: 'Select files to yank (use space to toggle, enter to confirm):',
 			choices: [
 				{ name: 'src/main.ts', value: '0' },
@@ -60,8 +65,6 @@ describe('main', () => {
 			],
 			pageSize: 20,
 		})
-
-		// Check that only selected file is processed
 		const { generateOutput } = vi.mocked(await import('./lib'))
 		expect(generateOutput).toHaveBeenCalledWith(
 			[
@@ -75,26 +78,20 @@ describe('main', () => {
 		)
 	})
 
-	it.skip('should exit if no files selected in preview mode', async () => {
+	it('should exit if no files are selected in preview mode', async () => {
 		vi.spyOn(process, 'argv', 'get').mockReturnValue(['node', 'yank', '--preview'])
-
-		const mockCheckbox = vi.fn().mockResolvedValue([]) // No selection
-		vi.doMock('@inquirer/prompts', () => ({
-			checkbox: mockCheckbox,
-		}))
-
+		mockedCheckbox.mockResolvedValue([])
 		await main()
-
-		expect(mockCheckbox).toHaveBeenCalled()
-		expect(vi.spyOn(console, 'error').mock.calls.some((call) => call[0] === 'No files selected. Exiting.')).toBe(true)
-		expect(vi.spyOn(process, 'exit').mock.calls.length).toBeGreaterThan(0)
+		expect(mockedCheckbox).toHaveBeenCalled()
+		expect(mockConsoleError).toHaveBeenCalledWith('No files selected. Exiting.')
+		expect(mockProcessExit).toHaveBeenCalledWith(0)
 	})
 
-	it.skip('should handle clipboard errors gracefully', async () => {
+	it('should handle clipboard errors gracefully', async () => {
 		vi.spyOn(process, 'argv', 'get').mockReturnValue(['node', 'yank', '--clip'])
-
+		vi.mocked(clipboard.write).mockRejectedValue(new Error('Clipboard is busy'))
 		await main()
-
-		expect(vi.spyOn(console, 'error').mock.calls.some((call) => call[0] === 'Error: Clipboard is busy')).toBe(true)
+		expect(mockConsoleError).toHaveBeenCalledWith('Error: Clipboard is busy')
+		expect(mockProcessExit).toHaveBeenCalledWith(1)
 	})
 })
