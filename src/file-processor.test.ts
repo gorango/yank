@@ -201,13 +201,20 @@ describe('processFiles with nested .gitignore', () => {
 	})
 
 	it('should handle deeply nested .gitignore files (5+ levels)', async () => {
-		// Create a deeply nested structure
 		const deepPath = 'level1/level2/level3/level4/level5'
 		const deepGitignore = `${MOCK_CWD}/${deepPath}/.gitignore`
 
-		virtualFs.set(`${MOCK_CWD}/.gitignore`, 'temp/')
-		virtualFs.set(deepGitignore, '!temp/*')
+		// The root .gitignore ignores the *contents* of any temp/ directory.
+		// This does NOT ignore the directory itself, allowing nested rules to apply.
+		virtualFs.set(`${MOCK_CWD}/.gitignore`, 'temp/*')
+
+		// The deep .gitignore negates the rule for a specific file within its local temp/ directory.
+		virtualFs.set(deepGitignore, '!temp/nested.txt')
+
+		// This file should be ignored by the root rule.
 		virtualFs.set(`${MOCK_CWD}/temp/file.txt`, 'content')
+
+		// This file should be re-included by the deep rule.
 		virtualFs.set(`${MOCK_CWD}/${deepPath}/temp/nested.txt`, 'nested content')
 
 		vi.mocked(fg).mockImplementation(async (patterns) => {
@@ -225,8 +232,8 @@ describe('processFiles with nested .gitignore', () => {
 		const result = await processFiles(mockConfig)
 		const paths = result.files.map((p) => p.relPath).sort()
 
-		// The root .gitignore excludes temp/, so temp/file.txt is excluded
-		// The deep negation only affects files in the deep directory, so only the nested file is included
+		// The root .gitignore excludes contents of temp/, so temp/file.txt is excluded.
+		// The deep negation overrides this for the specific nested file.
 		expect(paths).toEqual(['.gitignore', `${deepPath}/.gitignore`, `${deepPath}/temp/nested.txt`])
 
 		expect(result.stats.totalFiles).toBe(3)

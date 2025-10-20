@@ -24,8 +24,20 @@ async function buildIgnoreHierarchy(config: YankConfig): Promise<Map<string, Ign
 
 	for (const absPath of gitignorePaths) {
 		const dirPath = path.dirname(absPath)
-		const parentDirPath = path.dirname(dirPath)
-		const parentIgnorer = dirToIgnorer.get(parentDirPath) ?? rootIgnorer
+		let parentDirPath = path.dirname(dirPath)
+		let parentIgnorer: Ignore | undefined
+
+		while (parentDirPath.length >= cwd.length && parentDirPath !== dirPath) {
+			parentIgnorer = dirToIgnorer.get(parentDirPath)
+			if (parentIgnorer) {
+				break
+			}
+			parentDirPath = path.dirname(parentDirPath)
+		}
+
+		if (!parentIgnorer) {
+			parentIgnorer = rootIgnorer
+		}
 
 		try {
 			const content = await fs.readFile(absPath, 'utf-8')
@@ -76,14 +88,7 @@ export async function processFiles(
 			}
 
 			const relConfigPath = path.relative(ignorerDir, absPath)
-			let isIgnored = ignorer.ignores(relConfigPath)
-
-			if (isIgnored && path.basename(absPath) === '.gitignore' && dirPath === ignorerDir) {
-				const parentDir = path.dirname(dirPath)
-				const parentIgnorer = dirToIgnorer.get(parentDir) ?? (dirToIgnorer.get(cwd) as Ignore)
-				const relParentPath = path.relative(cwd, absPath)
-				isIgnored = parentIgnorer.ignores(relParentPath)
-			}
+			const isIgnored = ignorer.ignores(relConfigPath)
 
 			return !isIgnored
 		})
