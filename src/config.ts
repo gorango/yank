@@ -48,18 +48,6 @@ export class YankConfig {
 
 	public static async init(): Promise<YankConfig> {
 		const preParse = yargs(hideBin(process.argv))
-			.option('stats', {
-				alias: 's',
-				type: 'boolean',
-				description: 'Print summary stats.',
-				default: false,
-			})
-			.option('tokens', {
-				alias: 't',
-				type: 'boolean',
-				description: 'Add num tokens to stats.',
-				default: false,
-			})
 			.option('config', {
 				alias: 'C',
 				type: 'string',
@@ -114,12 +102,7 @@ export class YankConfig {
 		if (fileConfig.clip !== undefined && typeof fileConfig.clip !== 'boolean') {
 			throw new Error('Configuration error: clip must be a boolean')
 		}
-		if (fileConfig.stats !== undefined && typeof fileConfig.stats !== 'boolean') {
-			throw new Error('Configuration error: stats must be a boolean')
-		}
-		if (fileConfig.tokens !== undefined && typeof fileConfig.tokens !== 'boolean') {
-			throw new Error('Configuration error: tokens must be a boolean')
-		}
+
 		if (fileConfig.debug !== undefined && typeof fileConfig.debug !== 'boolean') {
 			throw new Error('Configuration error: debug must be a boolean')
 		}
@@ -175,18 +158,6 @@ export class YankConfig {
 				type: 'string',
 				description: 'Template for body (vars: {language}, {content})',
 				default: DEFAULT_CODE_TEMPLATE,
-			})
-			.option('stats', {
-				alias: 's',
-				type: 'boolean',
-				description: 'Print summary stats.',
-				default: false,
-			})
-			.option('tokens', {
-				alias: 't',
-				type: 'boolean',
-				description: 'Add num tokens to stats.',
-				default: false,
 			})
 			.option('config', {
 				alias: 'C',
@@ -287,8 +258,8 @@ export class YankConfig {
 			exclude: excludes,
 			fileTemplate: argv.fileTemplate,
 			codeTemplate: argv.codeTemplate,
-			stats: argv.stats || argv.tokens,
-			tokens: argv.tokens,
+			stats: true,
+			tokens: true,
 			debug: argv.debug,
 			preview: argv.preview,
 			langMap: argv.langMap || {},

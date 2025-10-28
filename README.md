@@ -37,6 +37,8 @@ Run `yank` without specifying path to all files in your project, skipping anythi
 yank
 ```
 
+`yank` displays summary statistics (file count, lines, size, and token count) after processing.
+
 ## Options
 
 Customize how `yank` works with these options:
@@ -48,8 +50,7 @@ Customize how `yank` works with these options:
 | `--exclude` | `-x` | Skip specific file patterns (adds to defaults like `node_modules`). | None |
 | `--name-template` | `-H` | Customize the header for each file. | `--- {filePath} ---` |
 | `--code-template` | `-B` | Set the format for code blocks. | <code>```{language}<br>{content}<br>```</code> |
-| `--stats` | `-s` | Show summary stats (e.g., file count) in the terminal. | Off |
-| `--tokens` | `-t` | Include token count in stats (great for AI workflows). | Off |
+
 | `--config` | `-C` | Use a custom config file. | Auto-detected |
 | `--lang-map` | | Override file language detection (e.g., `'{"LICENSE":"text"}'`). | None |
 | `--max-size` | | Skip files larger than this size (in bytes). | No limit (`0`) |
@@ -67,9 +68,6 @@ Customize `yank` by adding a config file to your project. It automatically finds
 ````toml
 # Always copy to clipboard
 clip = true
-
-# Show stats
-stats = true
 
 # Only include these files
 include = ["src/**/*.ts", "README.md", "package.json"]
@@ -100,8 +98,7 @@ Your config file can include these settings:
 | `exclude` | Array of strings | File patterns to skip. | `["**/*.test.ts"]` |
 | `fileTemplate` | String | File header format (must include `{filePath}`). | `"## {filePath}"` |
 | `codeTemplate` | String | Code block format (must include `{content}`). | <code>"```{language}\n{content}\n```"</code> |
-| `stats` | Boolean | Show summary stats. | `true` |
-| `tokens` | Boolean | Include token count in stats. | `false` |
+
 | `debug` | Boolean | Enable detailed logs. | `false` |
 | `languageOverrides` | Object | Override language detection for files. | `{"LICENSE": "text"}` |
 | `maxSize` | Number | Skip files larger than this (in bytes, 0 = no limit). | `1048576` (1MB) |
@@ -138,13 +135,7 @@ languageOverrides = { LICENSE = "text", Makefile = "makefile" }
 
 ## Counting Tokens for AI
 
-Need to know how many tokens your code will use in an AI model? Use the `--tokens` flag or set `tokens: true` in your config file.
-
-```sh
-yank --tokens # or -t
-```
-
-This gives an approximate token count (within 10-20% accuracy) for the formatted output, helping you estimate costs or fit within model limits.
+`yank` always includes an approximate token count (within 10-20% accuracy) in the summary stats. This helps you estimate AI model costs or ensure your code fits within token limits.
 
 ## Skipping Binary Files
 

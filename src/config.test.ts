@@ -251,28 +251,6 @@ describe('YankConfig.init with config file loading', () => {
 		await expect(YankConfig.init()).rejects.toThrow('Configuration error: clip must be a boolean')
 	})
 
-	it('should throw error for invalid stats in config file', async () => {
-		const invalidConfig = { stats: 1 }
-		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({
-			config: invalidConfig,
-			filepath: '/project/yank.toml',
-		})
-
-		await expect(YankConfig.init()).rejects.toThrow('Configuration error: stats must be a boolean')
-	})
-
-	it('should throw error for invalid tokens in config file', async () => {
-		const invalidConfig = { tokens: 'true' }
-		argvSpy.mockReturnValue(['node', 'yank'])
-		cosmiconfigMock.search.mockResolvedValue({
-			config: invalidConfig,
-			filepath: '/project/yank.toml',
-		})
-
-		await expect(YankConfig.init()).rejects.toThrow('Configuration error: tokens must be a boolean')
-	})
-
 	it('should throw error for invalid debug in config file', async () => {
 		const invalidConfig = { debug: 0 }
 		argvSpy.mockReturnValue(['node', 'yank'])
