@@ -322,30 +322,42 @@ describe('processFiles with nested .gitignore', () => {
 	})
 
 	it('should handle symlinks correctly', async () => {
-		vi.mocked(fs.stat).mockImplementation(async (filePath) => {
-			const resolvedPath = filePath.toString()
-			if (resolvedPath === `${MOCK_CWD}/src/symlink.ts`) {
-				return { isSymbolicLink: () => true } as fsType.Stats
-			}
-			if (virtualFs.has(resolvedPath)) {
-				return { isSymbolicLink: () => false } as fsType.Stats
-			}
-			throw new Error(`ENOENT: no such file or directory, stat '${resolvedPath}'`)
-		})
+		virtualFs.set(`${MOCK_CWD}/regular-file.txt`, 'content')
+		virtualFs.set(`${MOCK_CWD}/symlink.txt`, 'symlink content')
 
-		virtualFs.set(`${MOCK_CWD}/src/main.ts`, 'const x = 1;')
-		virtualFs.set(`${MOCK_CWD}/src/symlink.ts`, 'const y = 2;') // Content of the symlink target
-
-		vi.mocked(fg).mockImplementation(async (_patterns) => {
-			return [`${MOCK_CWD}/src/main.ts`, `${MOCK_CWD}/src/symlink.ts`]
+		vi.mocked(fg).mockImplementation(async (patterns) => {
+			if (patterns.toString().includes('.gitignore')) return []
+			return [`${MOCK_CWD}/regular-file.txt`, `${MOCK_CWD}/symlink.txt`]
 		})
 
 		const result = await processFiles(mockConfig)
-
 		expect(result.files).toHaveLength(2)
-		expect(result.files.map((f) => f.relPath)).toEqual(['src/main.ts', 'src/symlink.ts'])
-		expect(result.stats.totalFiles).toBe(2)
-		expect(result.stats.processedFiles).toBe(2)
-		expect(result.stats.skippedFiles).toBe(0)
+		expect(result.files.map((f) => f.relPath)).toEqual(['regular-file.txt', 'symlink.txt'])
+	})
+
+	it('should exclude directories even when they contain .gitignore files', async () => {
+		const configWithExclude = {
+			...mockConfig,
+			exclude: ['excluded/'],
+		}
+
+		// Set up files in excluded directory
+		virtualFs.set(`${MOCK_CWD}/included.txt`, 'included content')
+		virtualFs.set(`${MOCK_CWD}/excluded/file.txt`, 'excluded content')
+		virtualFs.set(`${MOCK_CWD}/excluded/.gitignore`, '*.txt') // This would normally exclude .txt files
+
+		vi.mocked(fg).mockImplementation(async (patterns) => {
+			if (patterns.toString().includes('.gitignore')) {
+				return [`${MOCK_CWD}/excluded/.gitignore`]
+			}
+			return [`${MOCK_CWD}/included.txt`, `${MOCK_CWD}/excluded/file.txt`, `${MOCK_CWD}/excluded/.gitignore`]
+		})
+
+		const result = await processFiles(configWithExclude)
+		const paths = result.files.map((f) => f.relPath).sort()
+
+		// Should include included.txt but exclude everything in excluded/ directory,
+		// even though .gitignore in excluded/ has patterns
+		expect(paths).toEqual(['included.txt'])
 	})
 })

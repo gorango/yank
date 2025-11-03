@@ -7,12 +7,9 @@ import ignore from 'ignore'
 import type { YankConfig } from './config.js'
 import type { FileProcessingStats, ProcessedFile } from './types.js'
 
-async function buildIgnoreHierarchy(config: YankConfig): Promise<Map<string, Ignore>> {
+async function buildIgnoreHierarchy(config: YankConfig): Promise<Ignore> {
 	const cwd = process.cwd()
-	const dirToIgnorer = new Map<string, Ignore>()
-
 	const rootIgnorer = ignore().add(config.exclude)
-	dirToIgnorer.set(cwd, rootIgnorer)
 
 	const gitignorePaths = await fg('**/.gitignore', {
 		dot: true,
@@ -20,42 +17,40 @@ async function buildIgnoreHierarchy(config: YankConfig): Promise<Map<string, Ign
 		ignore: ['**/node_modules/**', '**/.git/**'],
 	})
 
-	gitignorePaths.sort((a, b) => a.split(path.sep).length - b.split(path.sep).length)
-
 	for (const absPath of gitignorePaths) {
 		const dirPath = path.dirname(absPath)
-		let parentDirPath = path.dirname(dirPath)
-		let parentIgnorer: Ignore | undefined
-
-		while (parentDirPath.length >= cwd.length && parentDirPath !== dirPath) {
-			parentIgnorer = dirToIgnorer.get(parentDirPath)
-			if (parentIgnorer) {
-				break
-			}
-			parentDirPath = path.dirname(parentDirPath)
-		}
-
-		if (!parentIgnorer) {
-			parentIgnorer = rootIgnorer
-		}
 
 		try {
 			const content = await fs.readFile(absPath, 'utf-8')
-			dirToIgnorer.set(dirPath, ignore().add(parentIgnorer).add(content))
+			const lines = content.split('\n').filter((line) => line.trim())
+			const prefixedLines = lines.map((line) => {
+				if (!line || line.startsWith('#')) return line
+				const isNegation = line.startsWith('!')
+				const pattern = isNegation ? line.substring(1) : line
+				let prefixedPattern: string
+				if (!pattern.startsWith('/')) {
+					const relDir = path.relative(cwd, dirPath)
+					prefixedPattern = relDir ? `${relDir}/${pattern}` : pattern
+				} else {
+					prefixedPattern = pattern.substring(1)
+				}
+				return isNegation ? `!${prefixedPattern}` : prefixedPattern
+			})
+			rootIgnorer.add(prefixedLines)
 			if (config.debug) console.debug(`Loaded: ${path.relative(cwd, absPath)}`)
 		} catch {
 			if (config.debug) console.debug(`Failed to read: ${path.relative(cwd, absPath)}`)
 		}
 	}
 
-	return dirToIgnorer
+	return rootIgnorer
 }
 
 export async function processFiles(
 	config: YankConfig,
 ): Promise<{ files: ProcessedFile[]; stats: FileProcessingStats }> {
 	const cwd = process.cwd()
-	const dirToIgnorer = await buildIgnoreHierarchy(config)
+	const rootIgnorer = await buildIgnoreHierarchy(config)
 
 	const allFiles = await fg(config.include, {
 		dot: true,
@@ -67,29 +62,8 @@ export async function processFiles(
 
 	const filteredPaths = allFiles
 		.filter((absPath) => {
-			const dirPath = path.dirname(absPath)
-
-			let ignorer: Ignore | undefined
-			let ignorerDir: string | undefined
-			let current = dirPath
-			while (current.startsWith(cwd)) {
-				if (dirToIgnorer.has(current)) {
-					ignorer = dirToIgnorer.get(current)
-					ignorerDir = current
-					break
-				}
-				if (current === cwd) break
-				current = path.dirname(current)
-			}
-
-			if (!ignorer || !ignorerDir) {
-				ignorer = dirToIgnorer.get(cwd) as Ignore
-				ignorerDir = cwd
-			}
-
-			const relConfigPath = path.relative(ignorerDir, absPath)
-			const isIgnored = ignorer.ignores(relConfigPath)
-
+			const relPath = path.relative(cwd, absPath)
+			const isIgnored = rootIgnorer.ignores(relPath)
 			return !isIgnored
 		})
 		.sort()
