@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises'
+import path from 'node:path'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 import { cosmiconfig } from 'cosmiconfig'
 import { loadToml } from 'cosmiconfig-toml-loader'
 import fg from 'fast-glob'
@@ -12,7 +14,7 @@ import type { YankConfigCtor } from './types.js'
 const moduleName = 'yank'
 
 async function getPackageVersion(): Promise<string> {
-	const packageJsonPath = new URL('../../package.json', import.meta.url)
+	const packageJsonPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../package.json')
 	try {
 		const pkg = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'))
 		return pkg.version || '0.0.0'
