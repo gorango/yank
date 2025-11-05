@@ -10,6 +10,7 @@ vi.mock('@inquirer/prompts')
 vi.mock('clipboardy', () => ({
 	default: {
 		write: vi.fn(),
+		read: vi.fn(),
 	},
 }))
 
@@ -91,7 +92,7 @@ describe('main', () => {
 		vi.spyOn(process, 'argv', 'get').mockReturnValue(['node', 'yank', '--clip'])
 		vi.mocked(clipboard.write).mockRejectedValue(new Error('Clipboard is busy'))
 		await main()
-		expect(mockConsoleError).toHaveBeenCalledWith('Error: Clipboard is busy')
+		expect(mockConsoleError).toHaveBeenCalledWith('Clipboard error: Clipboard is busy')
 		expect(mockProcessExit).toHaveBeenCalledWith(1)
 	})
 })

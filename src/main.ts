@@ -50,8 +50,17 @@ export async function main() {
 		const output = await generateOutput(files, config)
 
 		if (config.clip) {
-			await clipboard.write(output)
-			console.error(`Yanking ${files.length} files into clipboard.`)
+			try {
+				await clipboard.write(output)
+				const readBack = await clipboard.read()
+				if (readBack !== output) {
+					throw new Error('Clipboard write validation failed - content mismatch')
+				}
+				console.error(`Yanking ${files.length} files into clipboard.`)
+			} catch (error) {
+				console.error(`Clipboard error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+				process.exit(1)
+			}
 		} else {
 			console.log(output)
 		}
