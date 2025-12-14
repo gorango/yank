@@ -34,6 +34,7 @@ export class YankConfig {
 	readonly debug: boolean
 	readonly preview: boolean
 	readonly langMap: Record<string, string>
+	readonly workspacePackage?: string
 
 	private constructor(init: YankConfigCtor) {
 		this.clip = init.clip
@@ -46,6 +47,7 @@ export class YankConfig {
 		this.debug = init.debug
 		this.preview = init.preview
 		this.langMap = init.langMap || {}
+		this.workspacePackage = init.workspacePackage
 	}
 
 	public static async init(): Promise<YankConfig> {
@@ -188,6 +190,11 @@ export class YankConfig {
 				description: 'Enable interactive preview mode to select files.',
 				default: false,
 			})
+			.option('workspace', {
+				alias: 'w',
+				type: 'string',
+				description: 'Path to package in monorepo to yank with workspace dependencies.',
+			})
 			.config(fileConfig)
 			.help()
 			.alias('h', 'help')
@@ -265,6 +272,7 @@ export class YankConfig {
 			debug: argv.debug,
 			preview: argv.preview,
 			langMap: argv.langMap || {},
+			workspacePackage: argv.workspace,
 		})
 
 		if (!config.fileTemplate.includes('{filePath}')) {
@@ -272,6 +280,23 @@ export class YankConfig {
 		}
 		if (!config.codeTemplate.includes('{content}')) {
 			throw new Error('Configuration error: --code-template must include the {content} placeholder.')
+		}
+
+		if (config.workspacePackage) {
+			if (path.isAbsolute(config.workspacePackage)) {
+				throw new Error('Configuration error: --workspace must be a relative path.')
+			}
+			// Check if the path exists and has package.json
+			const cwd = process.cwd()
+			const pkgPath = path.resolve(cwd, config.workspacePackage)
+			try {
+				await fs.access(pkgPath)
+				await fs.access(path.join(pkgPath, 'package.json'))
+			} catch {
+				throw new Error(
+					`Configuration error: --workspace path '${config.workspacePackage}' does not exist or is not a package directory.`,
+				)
+			}
 		}
 
 		return config

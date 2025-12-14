@@ -6,6 +6,7 @@ import type { Ignore } from 'ignore'
 import ignore from 'ignore'
 import type { YankConfig } from './config.js'
 import type { FileProcessingStats, ProcessedFile } from './types.js'
+import { findWorkspaceRoot, getWorkspacePackages, resolveWorkspaceDeps } from './workspace-resolver.js'
 
 async function buildIgnoreHierarchy(config: YankConfig): Promise<Ignore> {
 	const cwd = process.cwd()
@@ -50,9 +51,29 @@ export async function processFiles(
 	config: YankConfig,
 ): Promise<{ files: ProcessedFile[]; stats: FileProcessingStats }> {
 	const cwd = process.cwd()
+	const includes = [...config.include]
+
+	if (config.workspacePackage) {
+		const wsRoot = await findWorkspaceRoot(cwd)
+		if (!wsRoot) {
+			throw new Error('No workspace root found (pnpm-workspace.yaml or package.json with workspaces).')
+		}
+		const packages = await getWorkspacePackages(wsRoot)
+		const wsDeps = await resolveWorkspaceDeps(config.workspacePackage, packages, wsRoot)
+		const workspaceDirs = new Set([config.workspacePackage, ...wsDeps])
+		for (const dir of workspaceDirs) {
+			for (const pattern of config.include) {
+				includes.push(`${dir}/${pattern}`)
+			}
+		}
+		if (config.debug) {
+			console.debug(`Workspace packages included: ${[...workspaceDirs].join(', ')}`)
+		}
+	}
+
 	const rootIgnorer = await buildIgnoreHierarchy(config)
 
-	const allFiles = await fg(config.include, {
+	const allFiles = await fg(includes, {
 		dot: true,
 		absolute: true,
 		onlyFiles: true,

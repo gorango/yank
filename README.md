@@ -28,6 +28,9 @@ yank config *.json | less
 
 # Pick files interactively
 yank --preview # or -p
+
+# Yank a package and its workspace dependencies in a monorepo
+yank --workspace packages/my-app # or -w
 ```
 
 Run `yank` without specifying path to all files in your project, skipping anything listed in `.gitignore`.
@@ -56,6 +59,7 @@ Customize how `yank` works with these options:
 | `--max-size` | | Skip files larger than this size (in bytes). | No limit (`0`) |
 | `--debug` | | Show detailed logs for troubleshooting. | Off |
 | `--preview` | `-p` | Interactively select files before processing. | Off |
+| `--workspace` | `-w` | Path to package in monorepo to yank with workspace dependencies. | |
 | `--help` | `-h` | Display help info. | |
 | `--version` | `-v` | Show the version number. | |
 
