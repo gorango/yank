@@ -1,7 +1,8 @@
 import type fs from 'node:fs'
 import process from 'node:process'
+import type { PublicExplorer } from 'cosmiconfig'
 import fg from 'fast-glob'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, type Mocked, vi } from 'vitest'
 import { YankConfig } from './config'
 
 vi.mock('cosmiconfig')
@@ -121,13 +122,7 @@ describe('YankConfig.init', () => {
 
 describe('YankConfig.init with config file loading', () => {
 	let argvSpy: ReturnType<typeof vi.spyOn>
-	let cosmiconfigMock: {
-		search: ReturnType<typeof vi.fn>
-		load: ReturnType<typeof vi.fn>
-		clearLoadCache: ReturnType<typeof vi.fn>
-		clearSearchCache: ReturnType<typeof vi.fn>
-		clearCaches: ReturnType<typeof vi.fn>
-	}
+	let cosmiconfigMock: Mocked<PublicExplorer>
 
 	beforeEach(async () => {
 		vi.resetAllMocks()
