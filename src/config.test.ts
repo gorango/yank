@@ -291,4 +291,16 @@ describe('YankConfig.init with config file loading', () => {
 
 		await expect(YankConfig.init()).rejects.toThrow("Configuration error: langMap value for 'LICENSE' must be a string")
 	})
+
+	it('should include binary file extension patterns in excludes', async () => {
+		argvSpy.mockReturnValue(['node', 'yank'])
+		const config = await YankConfig.init()
+
+		// Check that binary extensions are excluded
+		expect(config.exclude).toContain('**/*.ico')
+		expect(config.exclude).toContain('**/*.png')
+		expect(config.exclude).toContain('**/*.ttf')
+		expect(config.exclude).toContain('**/*.jpg')
+		expect(config.exclude).toContain('**/*.zip')
+	})
 })

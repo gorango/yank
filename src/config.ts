@@ -253,8 +253,8 @@ export class YankConfig {
 		if (rawIncludePatterns.length > 0) includes = await expandDirectoryPatterns(rawIncludePatterns)
 		else includes = ['**/*']
 
-		const binaryIgnorePattern = `**/*.{${BINARY_FILE_EXTENSIONS.join(',')}}`
-		const excludes = [...DEFAULT_EXCLUDE_PATTERNS, binaryIgnorePattern, ...argv.exclude]
+		const binaryIgnorePatterns = BINARY_FILE_EXTENSIONS.map((ext) => `**/*.${ext}`)
+		const excludes = [...DEFAULT_EXCLUDE_PATTERNS, ...binaryIgnorePatterns, ...argv.exclude]
 
 		// validate argv.langMap
 		if (argv.langMap) {
