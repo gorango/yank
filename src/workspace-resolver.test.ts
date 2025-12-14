@@ -94,7 +94,7 @@ describe('workspace-resolver', () => {
 			)
 			const packages = new Map([['pkg-b', 'packages/b']])
 
-			const deps = await resolveWorkspaceDeps('packages/a', packages, '/root')
+			const deps = await resolveWorkspaceDeps('packages/a', packages, '/root', false)
 			expect(deps.has('packages/b')).toBe(true)
 		})
 
@@ -116,9 +116,25 @@ describe('workspace-resolver', () => {
 				['pkg-c', 'packages/c'],
 			])
 
-			const deps = await resolveWorkspaceDeps('packages/a', packages, '/root')
+			const deps = await resolveWorkspaceDeps('packages/a', packages, '/root', true)
 			expect(deps.has('packages/b')).toBe(true)
 			expect(deps.has('packages/c')).toBe(true)
+		})
+
+		it('resolves direct deps only when recursive=false', async () => {
+			mockFs.readFile.mockResolvedValue(
+				JSON.stringify({
+					dependencies: { 'pkg-b': 'workspace:*' },
+				}),
+			)
+			const packages = new Map([
+				['pkg-b', 'packages/b'],
+				['pkg-c', 'packages/c'],
+			])
+
+			const deps = await resolveWorkspaceDeps('packages/a', packages, '/root', false)
+			expect(deps.has('packages/b')).toBe(true)
+			expect(deps.has('packages/c')).toBe(false)
 		})
 
 		it('fails on unresolved dep', async () => {
@@ -129,7 +145,7 @@ describe('workspace-resolver', () => {
 			)
 			const packages = new Map()
 
-			await expect(resolveWorkspaceDeps('packages/a', packages, '/root')).rejects.toThrow(
+			await expect(resolveWorkspaceDeps('packages/a', packages, '/root', false)).rejects.toThrow(
 				'Unresolved workspace dependency: missing',
 			)
 		})
@@ -151,7 +167,7 @@ describe('workspace-resolver', () => {
 				['pkg-b', 'packages/b'],
 			])
 
-			const deps = await resolveWorkspaceDeps('packages/a', packages, '/root')
+			const deps = await resolveWorkspaceDeps('packages/a', packages, '/root', true)
 			expect(deps.has('packages/b')).toBe(true)
 			// Should not infinite loop
 		})

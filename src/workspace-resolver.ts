@@ -98,6 +98,7 @@ export async function resolveWorkspaceDeps(
 	packagePath: string,
 	packages: Map<string, string>,
 	root: string,
+	recursive = true,
 	visited = new Set<string>(),
 ): Promise<Set<string>> {
 	const deps = new Set<string>()
@@ -126,7 +127,9 @@ export async function resolveWorkspaceDeps(
 
 				deps.add(depDir)
 				// Recursive
-				const subDeps = await resolveWorkspaceDeps(depDir, packages, root, visited)
+				const subDeps = recursive
+					? await resolveWorkspaceDeps(depDir, packages, root, recursive, visited)
+					: new Set<string>()
 				for (const sub of subDeps) {
 					deps.add(sub)
 				}

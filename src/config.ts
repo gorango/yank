@@ -34,7 +34,8 @@ export class YankConfig {
 	readonly debug: boolean
 	readonly preview: boolean
 	readonly langMap: Record<string, string>
-	readonly workspacePackage?: string
+	readonly workspaceDirect?: string
+	readonly workspaceRecursive: boolean
 
 	private constructor(init: YankConfigCtor) {
 		this.clip = init.clip
@@ -47,7 +48,8 @@ export class YankConfig {
 		this.debug = init.debug
 		this.preview = init.preview
 		this.langMap = init.langMap || {}
-		this.workspacePackage = init.workspacePackage
+		this.workspaceDirect = init.workspaceDirect
+		this.workspaceRecursive = init.workspaceRecursive ?? false
 	}
 
 	public static async init(): Promise<YankConfig> {
@@ -193,7 +195,12 @@ export class YankConfig {
 			.option('workspace', {
 				alias: 'w',
 				type: 'string',
-				description: 'Path to package in monorepo to yank with workspace dependencies.',
+				description: 'Path to package in monorepo to yank with direct workspace dependencies.',
+			})
+			.option('workspace-recursive', {
+				alias: 'r',
+				type: 'string',
+				description: 'Path to package in monorepo to yank with recursive workspace dependencies.',
 			})
 			.config(fileConfig)
 			.help()
@@ -261,6 +268,20 @@ export class YankConfig {
 			}
 		}
 
+		let workspaceDirect: string | undefined
+		let workspaceRecursive = false
+
+		if (argv.workspaceRecursive && typeof argv.workspaceRecursive === 'string') {
+			if (argv.w && typeof argv.w === 'string') {
+				throw new Error('Cannot use both -w and --workspace-recursive')
+			}
+			workspaceDirect = argv.workspaceRecursive
+			workspaceRecursive = true
+		} else if (argv.w && typeof argv.w === 'string') {
+			workspaceDirect = argv.w
+			workspaceRecursive = false
+		}
+
 		const config = new YankConfig({
 			clip: argv.clip,
 			include: includes,
@@ -272,7 +293,8 @@ export class YankConfig {
 			debug: argv.debug,
 			preview: argv.preview,
 			langMap: argv.langMap || {},
-			workspacePackage: argv.workspace,
+			workspaceDirect,
+			workspaceRecursive,
 		})
 
 		if (!config.fileTemplate.includes('{filePath}')) {
@@ -282,19 +304,19 @@ export class YankConfig {
 			throw new Error('Configuration error: --code-template must include the {content} placeholder.')
 		}
 
-		if (config.workspacePackage) {
-			if (path.isAbsolute(config.workspacePackage)) {
+		if (config.workspaceDirect) {
+			if (path.isAbsolute(config.workspaceDirect)) {
 				throw new Error('Configuration error: --workspace must be a relative path.')
 			}
 			// Check if the path exists and has package.json
 			const cwd = process.cwd()
-			const pkgPath = path.resolve(cwd, config.workspacePackage)
+			const pkgPath = path.resolve(cwd, config.workspaceDirect)
 			try {
 				await fs.access(pkgPath)
 				await fs.access(path.join(pkgPath, 'package.json'))
 			} catch {
 				throw new Error(
-					`Configuration error: --workspace path '${config.workspacePackage}' does not exist or is not a package directory.`,
+					`Configuration error: --workspace path '${config.workspaceDirect}' does not exist or is not a package directory.`,
 				)
 			}
 		}

@@ -22,5 +22,6 @@ export interface YankConfigCtor {
 	debug: boolean
 	preview: boolean
 	langMap?: Record<string, string>
-	workspacePackage?: string
+	workspaceDirect?: string
+	workspaceRecursive?: boolean
 }

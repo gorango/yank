@@ -51,16 +51,16 @@ export async function processFiles(
 	config: YankConfig,
 ): Promise<{ files: ProcessedFile[]; stats: FileProcessingStats }> {
 	const cwd = process.cwd()
-	const includes = [...config.include]
-
-	if (config.workspacePackage) {
+	let includes: string[]
+	if (config.workspaceDirect) {
+		includes = []
 		const wsRoot = await findWorkspaceRoot(cwd)
 		if (!wsRoot) {
 			throw new Error('No workspace root found (pnpm-workspace.yaml or package.json with workspaces).')
 		}
 		const packages = await getWorkspacePackages(wsRoot)
-		const wsDeps = await resolveWorkspaceDeps(config.workspacePackage, packages, wsRoot)
-		const workspaceDirs = new Set([config.workspacePackage, ...wsDeps])
+		const wsDeps = await resolveWorkspaceDeps(config.workspaceDirect, packages, wsRoot, config.workspaceRecursive)
+		const workspaceDirs = new Set([config.workspaceDirect, ...wsDeps])
 		for (const dir of workspaceDirs) {
 			for (const pattern of config.include) {
 				includes.push(`${dir}/${pattern}`)
@@ -69,6 +69,8 @@ export async function processFiles(
 		if (config.debug) {
 			console.debug(`Workspace packages included: ${[...workspaceDirs].join(', ')}`)
 		}
+	} else {
+		includes = [...config.include]
 	}
 
 	const rootIgnorer = await buildIgnoreHierarchy(config)

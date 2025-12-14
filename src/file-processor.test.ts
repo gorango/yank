@@ -113,6 +113,7 @@ describe('processFiles with nested .gitignore', () => {
 		stats: true,
 		tokens: true,
 		debug: false,
+		workspaceRecursive: false,
 		preview: false,
 		langMap: {},
 	} as YankConfig
