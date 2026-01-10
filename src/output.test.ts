@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { YankConfig } from './config'
-import { generateOutput } from './lib'
+import { generateOutput } from './output'
 import type { ProcessedFile } from './types'
 
 // Mock config objects that match the YankConfig interface

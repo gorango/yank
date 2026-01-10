@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } fr
 import { main } from './main'
 
 vi.mock('./file-processor')
-vi.mock('./lib')
+vi.mock('./output')
 vi.mock('@inquirer/prompts')
 vi.mock('clipboardy', () => ({
 	default: {
@@ -65,7 +65,7 @@ describe('main', () => {
 			},
 		})
 
-		const { generateOutput } = vi.mocked(await import('./lib'))
+		const { generateOutput } = vi.mocked(await import('./output'))
 		generateOutput.mockResolvedValue('mocked output')
 	})
 
@@ -85,7 +85,7 @@ describe('main', () => {
 			],
 			pageSize: 20,
 		})
-		const { generateOutput } = vi.mocked(await import('./lib'))
+		const { generateOutput } = vi.mocked(await import('./output'))
 		expect(generateOutput).toHaveBeenCalledWith(
 			[
 				{

@@ -5,7 +5,7 @@ import byteSize from 'byte-size'
 import clipboard from 'clipboardy'
 import { YankConfig } from './config.js'
 import { processFiles } from './file-processor.js'
-import { generateOutput } from './lib.js'
+import { generateOutput } from './output.js'
 import { estimateTokens } from './token-estimator.js'
 
 export async function main() {
