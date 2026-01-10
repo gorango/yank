@@ -88,7 +88,13 @@ export const BINARY_FILE_EXTENSIONS: string[] = [
 	'db',
 	'dll',
 	'dylib',
+	// Fonts
 	'eot',
+	'otf',
+	'ttc',
+	'ttf',
+	'woff',
+	'woff2',
 	'exe',
 	'lock',
 	'o',
@@ -98,9 +104,6 @@ export const BINARY_FILE_EXTENSIONS: string[] = [
 	'so',
 	'swp',
 	'swo',
-	'ttf',
-	'woff',
-	'woff2',
 ]
 
 export const DEFAULT_EXCLUDE_PATTERNS: string[] = [
@@ -153,6 +156,8 @@ export const DEFAULT_EXCLUDE_PATTERNS: string[] = [
 	'*.tmp',
 	'*.temp',
 	'*.bak',
+	'*.db',
+	'*.sqlite',
 	'*~',
 	// OS-specific
 	'.DS_Store',
