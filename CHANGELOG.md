@@ -1,3 +1,7 @@
+## v1.3.2 - 2026-01-10
+- Renamed lib.ts and lib.test.ts to output.ts and output.test.ts for better code organization
+- Added font file extensions section with all variants (eot, otf, ttc, ttf, woff, woff2)
+
 ## v1.3.4 - 2025-12-14
 - Properly exclude binary files using individual extension patterns instead of brace expansion
 - Added --workspace flag for yanking JS monorepo packages and their dependencies
