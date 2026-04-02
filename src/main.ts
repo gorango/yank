@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 import { inspect } from 'node:util'
 import byteSize from 'byte-size'
 import clipboard from 'clipboardy'
@@ -42,7 +43,9 @@ export async function main() {
 				}
 				files = files.filter((_, index) => selectedIndices.includes(index.toString()))
 			} catch (error) {
-				console.error(`Error in preview mode: ${error instanceof Error ? error.message : 'Unknown error'}`)
+				console.error(
+					`Error in preview mode: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				)
 				process.exit(1)
 			}
 		}
@@ -58,7 +61,9 @@ export async function main() {
 				}
 				console.error(`Yanking ${files.length} files into clipboard.`)
 			} catch (error) {
-				console.error(`Clipboard error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+				console.error(
+					`Clipboard error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				)
 				process.exit(1)
 			}
 		} else {
@@ -93,4 +98,14 @@ export async function main() {
 	}
 }
 
-main().catch(() => {})
+const isMainModule =
+	process.argv[1] &&
+	(process.argv[1] === fileURLToPath(import.meta.url) ||
+		process.argv[1].endsWith('/dist/main.mjs'))
+
+if (isMainModule) {
+	main().catch((error) => {
+		console.error(`Fatal error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+		process.exit(1)
+	})
+}

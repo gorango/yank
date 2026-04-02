@@ -138,7 +138,9 @@ describe('main', () => {
 			},
 		})
 		await main()
-		expect(mockConsoleError).toHaveBeenCalledWith('No files matched the include/ignore patterns.')
+		expect(mockConsoleError).toHaveBeenCalledWith(
+			'No files matched the include/ignore patterns.',
+		)
 		expect(mockProcessExit).toHaveBeenCalledWith(1)
 	})
 
