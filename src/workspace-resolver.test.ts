@@ -1,7 +1,11 @@
 import type { PathLike } from 'node:fs'
 import fs from 'node:fs/promises'
 import { describe, expect, it, vi } from 'vitest'
-import { findWorkspaceRoot, getWorkspacePackages, resolveWorkspaceDeps } from './workspace-resolver.js'
+import {
+	findWorkspaceRoot,
+	getWorkspacePackages,
+	resolveWorkspaceDeps,
+} from './workspace-resolver.js'
 
 vi.mock(
 	import('node:fs/promises'),
@@ -39,7 +43,8 @@ describe('workspace-resolver', () => {
 			mockFs.access.mockRejectedValue(new Error())
 			// biome-ignore lint/suspicious/noExplicitAny: Parameter type is complex union in fs.readFile
 			mockFs.readFile.mockImplementation((p: any) => {
-				if (p === '/some/package.json') return Promise.resolve(JSON.stringify({ workspaces: ['packages/*'] }))
+				if (p === '/some/package.json')
+					return Promise.resolve(JSON.stringify({ workspaces: ['packages/*'] }))
 				return Promise.reject()
 			})
 			const root = await findWorkspaceRoot('/some/path')
@@ -58,9 +63,12 @@ describe('workspace-resolver', () => {
 		it('parses pnpm-workspace.yaml', async () => {
 			// biome-ignore lint/suspicious/noExplicitAny: Parameter type is complex union in fs.readFile
 			mockFs.readFile.mockImplementation((p: any) => {
-				if (p === '/root/pnpm-workspace.yaml') return Promise.resolve(JSON.stringify({ packages: ['packages/*'] }))
-				if (p === '/root/packages/a/package.json') return Promise.resolve(JSON.stringify({ name: 'pkg-a' }))
-				if (p === '/root/packages/b/package.json') return Promise.resolve(JSON.stringify({ name: 'pkg-b' }))
+				if (p === '/root/pnpm-workspace.yaml')
+					return Promise.resolve('packages:\n  - packages/*\n')
+				if (p === '/root/packages/a/package.json')
+					return Promise.resolve(JSON.stringify({ name: 'pkg-a' }))
+				if (p === '/root/packages/b/package.json')
+					return Promise.resolve(JSON.stringify({ name: 'pkg-b' }))
 				return Promise.reject()
 			})
 			mockFg.mockResolvedValue(['/root/packages/a', '/root/packages/b'])
@@ -74,8 +82,10 @@ describe('workspace-resolver', () => {
 			// biome-ignore lint/suspicious/noExplicitAny: Parameter type is complex union in fs.readFile
 			mockFs.readFile.mockImplementation((p: any) => {
 				if (p === '/root/pnpm-workspace.yaml') return Promise.reject()
-				if (p === '/root/package.json') return Promise.resolve(JSON.stringify({ workspaces: ['packages/*'] }))
-				if (p === '/root/packages/a/package.json') return Promise.resolve(JSON.stringify({ name: 'pkg-a' }))
+				if (p === '/root/package.json')
+					return Promise.resolve(JSON.stringify({ workspaces: ['packages/*'] }))
+				if (p === '/root/packages/a/package.json')
+					return Promise.resolve(JSON.stringify({ name: 'pkg-a' }))
 				return Promise.reject()
 			})
 			mockFg.mockResolvedValue(['/root/packages/a'])
@@ -145,9 +155,9 @@ describe('workspace-resolver', () => {
 			)
 			const packages = new Map()
 
-			await expect(resolveWorkspaceDeps('packages/a', packages, '/root', false)).rejects.toThrow(
-				'Unresolved workspace dependency: missing',
-			)
+			await expect(
+				resolveWorkspaceDeps('packages/a', packages, '/root', false),
+			).rejects.toThrow('Unresolved workspace dependency: missing')
 		})
 
 		it('handles cycles', async () => {

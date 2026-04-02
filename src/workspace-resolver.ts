@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import fg from 'fast-glob'
+import { parse as parseYaml } from 'yaml'
 
 export interface WorkspaceInfo {
 	root: string
@@ -45,10 +46,14 @@ export async function getWorkspacePackages(root: string): Promise<Map<string, st
 	try {
 		const wsPath = path.join(root, 'pnpm-workspace.yaml')
 		const content = await fs.readFile(wsPath, 'utf-8')
-		const config = JSON.parse(content) // assuming YAML is JSON-like, or use a parser, but for simplicity
+		const config = parseYaml(content)
 		if (config.packages) {
 			for (const pattern of config.packages) {
-				const dirs = await fg(pattern, { cwd: root, onlyDirectories: true, absolute: true })
+				const dirs = await fg(pattern, {
+					cwd: root,
+					onlyDirectories: true,
+					absolute: true,
+				})
 				for (const dir of dirs) {
 					try {
 						const pkgPath = path.join(dir, 'package.json')
@@ -70,9 +75,15 @@ export async function getWorkspacePackages(root: string): Promise<Map<string, st
 			const pkgContent = await fs.readFile(pkgPath, 'utf-8')
 			const pkg = JSON.parse(pkgContent)
 			if (pkg.workspaces) {
-				const patterns = Array.isArray(pkg.workspaces) ? pkg.workspaces : pkg.workspaces.packages || []
+				const patterns = Array.isArray(pkg.workspaces)
+					? pkg.workspaces
+					: pkg.workspaces.packages || []
 				for (const pattern of patterns) {
-					const dirs = await fg(pattern, { cwd: root, onlyDirectories: true, absolute: true })
+					const dirs = await fg(pattern, {
+						cwd: root,
+						onlyDirectories: true,
+						absolute: true,
+					})
 					for (const dir of dirs) {
 						try {
 							const pkgPath = path.join(dir, 'package.json')
