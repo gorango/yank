@@ -25,7 +25,7 @@ describe('getLanguage', () => {
 
 	it('should handle case-insensitive extensions', async () => {
 		expect(await getLanguage('script.R')).toBe('r')
-		expect(await getLanguage('data.CSV')).toBe('')
+		expect(await getLanguage('data.CSV')).toBe('csv')
 	})
 
 	it('should detect shebang for bash scripts', async () => {
@@ -118,8 +118,8 @@ describe('getLanguage', () => {
 	})
 
 	it('should handle .env file detection', async () => {
-		expect(await getLanguage('.env')).toBe('ini')
-		expect(await getLanguage('config.env')).toBe('ini')
+		expect(await getLanguage('.env')).toBe('dotenv')
+		expect(await getLanguage('config.env')).toBe('dotenv')
 	})
 
 	it('should handle Jenkinsfile detection', async () => {
