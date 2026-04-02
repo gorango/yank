@@ -6,7 +6,21 @@ import type { Ignore } from 'ignore'
 import ignore from 'ignore'
 import type { YankConfig } from './config.js'
 import type { FileProcessingStats, ProcessedFile } from './types.js'
-import { findWorkspaceRoot, getWorkspacePackages, resolveWorkspaceDeps } from './workspace-resolver.js'
+import {
+	findWorkspaceRoot,
+	getWorkspacePackages,
+	resolveWorkspaceDeps,
+} from './workspace-resolver.js'
+
+async function isFileUnderMaxSize(absPath: string, maxSize: number): Promise<boolean> {
+	if (maxSize <= 0) return true
+	try {
+		const stat = await fs.stat(absPath)
+		return stat.size <= maxSize
+	} catch {
+		return false
+	}
+}
 
 async function buildIgnoreHierarchy(config: YankConfig): Promise<Ignore> {
 	const cwd = process.cwd()
@@ -56,10 +70,17 @@ export async function processFiles(
 		includes = []
 		const wsRoot = await findWorkspaceRoot(cwd)
 		if (!wsRoot) {
-			throw new Error('No workspace root found (pnpm-workspace.yaml or package.json with workspaces).')
+			throw new Error(
+				'No workspace root found (pnpm-workspace.yaml or package.json with workspaces).',
+			)
 		}
 		const packages = await getWorkspacePackages(wsRoot)
-		const wsDeps = await resolveWorkspaceDeps(config.workspaceDirect, packages, wsRoot, config.workspaceRecursive)
+		const wsDeps = await resolveWorkspaceDeps(
+			config.workspaceDirect,
+			packages,
+			wsRoot,
+			config.workspaceRecursive,
+		)
 		const workspaceDirs = new Set([config.workspaceDirect, ...wsDeps])
 		for (const dir of workspaceDirs) {
 			for (const pattern of config.include) {
@@ -92,37 +113,50 @@ export async function processFiles(
 		.sort()
 
 	if (config.debug) {
-		console.debug(`Files found: ${allFiles.length}. After ignore rules: ${filteredPaths.length}.`)
+		console.debug(
+			`Files found: ${allFiles.length}. After ignore rules: ${filteredPaths.length}.`,
+		)
 	}
 
-	const skippedReasons = new Map<string, number>()
-	let processedCount = 0
-	let skippedCount = 0
-
-	const filePromises = filteredPaths.map(async (absPath) => {
-		try {
-			const content = await fs.readFile(absPath, 'utf-8')
-			const relPath = path.relative(cwd, absPath).replace(/\\/g, '/')
-			processedCount++
-			return { relPath, content, lineCount: content.split('\n').length }
-		} catch (error) {
-			skippedCount++
-			const reason = error instanceof Error ? error.message : 'Unknown error'
-			skippedReasons.set(reason, (skippedReasons.get(reason) || 0) + 1)
-
-			if (config.debug) {
-				console.debug(`Failed to read ${path.relative(cwd, absPath)}: ${reason}`)
+	const results = await Promise.all(
+		filteredPaths.map(async (absPath) => {
+			try {
+				if (!(await isFileUnderMaxSize(absPath, config.maxSize))) {
+					if (config.debug)
+						console.debug(`Skipped (too large): ${path.relative(cwd, absPath)}`)
+					return { success: false as const, reason: 'maxSize' }
+				}
+				const content = await fs.readFile(absPath, 'utf-8')
+				const relPath = path.relative(cwd, absPath).replace(/\\/g, '/')
+				return {
+					success: true as const,
+					file: { relPath, content, lineCount: content.split('\n').length },
+				}
+			} catch (error) {
+				const reason = error instanceof Error ? error.message : 'Unknown error'
+				if (config.debug) {
+					console.debug(`Failed to read ${path.relative(cwd, absPath)}: ${reason}`)
+				}
+				return { success: false as const, reason }
 			}
-			return null
-		}
-	})
+		}),
+	)
 
-	const processedFiles = (await Promise.all(filePromises)).filter(Boolean) as ProcessedFile[]
+	const processedFiles: ProcessedFile[] = []
+	const skippedReasons = new Map<string, number>()
+
+	for (const result of results) {
+		if (result.success) {
+			processedFiles.push(result.file)
+		} else {
+			skippedReasons.set(result.reason, (skippedReasons.get(result.reason) || 0) + 1)
+		}
+	}
 
 	const stats: FileProcessingStats = {
 		totalFiles: filteredPaths.length,
-		processedFiles: processedCount,
-		skippedFiles: skippedCount,
+		processedFiles: processedFiles.length,
+		skippedFiles: filteredPaths.length - processedFiles.length,
 		skippedReasons,
 	}
 

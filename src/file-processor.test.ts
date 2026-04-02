@@ -53,6 +53,7 @@ describe('processFiles', () => {
 		debug: false,
 		preview: false,
 		langMap: {},
+		maxSize: 0,
 	} as YankConfig
 
 	it('should find, read, filter, and count lines correctly', async () => {
@@ -63,7 +64,11 @@ describe('processFiles', () => {
 		vi.mocked(fg).mockImplementation(async (patterns) => {
 			if (patterns.toString().includes('.gitignore')) return []
 
-			return [`${MOCK_CWD}/src/main.ts`, `${MOCK_CWD}/package.json`, `${MOCK_CWD}/node_modules/dep/index.js`]
+			return [
+				`${MOCK_CWD}/src/main.ts`,
+				`${MOCK_CWD}/package.json`,
+				`${MOCK_CWD}/node_modules/dep/index.js`,
+			]
 		})
 
 		const result = await processFiles(mockConfig)
@@ -116,6 +121,7 @@ describe('processFiles with nested .gitignore', () => {
 		workspaceRecursive: false,
 		preview: false,
 		langMap: {},
+		maxSize: 0,
 	} as YankConfig
 
 	it('should handle multiple nested .gitignore files with conflicting negations', async () => {
@@ -184,7 +190,11 @@ describe('processFiles with nested .gitignore', () => {
 
 		vi.mocked(fg).mockImplementation(async (patterns) => {
 			if (patterns.toString().includes('.gitignore')) {
-				return [`${MOCK_CWD}/.gitignore`, `${MOCK_CWD}/src/.gitignore`, `${MOCK_CWD}/src/invalid.gitignore`]
+				return [
+					`${MOCK_CWD}/.gitignore`,
+					`${MOCK_CWD}/src/.gitignore`,
+					`${MOCK_CWD}/src/invalid.gitignore`,
+				]
 			}
 			return [`${MOCK_CWD}/test.txt`]
 		})
@@ -235,7 +245,11 @@ describe('processFiles with nested .gitignore', () => {
 
 		// The root .gitignore excludes contents of temp/, so temp/file.txt is excluded.
 		// The deep negation overrides this for the specific nested file.
-		expect(paths).toEqual(['.gitignore', `${deepPath}/.gitignore`, `${deepPath}/temp/nested.txt`])
+		expect(paths).toEqual([
+			'.gitignore',
+			`${deepPath}/.gitignore`,
+			`${deepPath}/temp/nested.txt`,
+		])
 
 		expect(result.stats.totalFiles).toBe(3)
 		expect(result.stats.processedFiles).toBe(3)
@@ -317,7 +331,9 @@ describe('processFiles with nested .gitignore', () => {
 
 		await processFiles(debugConfig)
 
-		expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to read src/fail.txt: Permission denied'))
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringContaining('Failed to read src/fail.txt: Permission denied'),
+		)
 
 		consoleSpy.mockRestore()
 	})
@@ -351,7 +367,11 @@ describe('processFiles with nested .gitignore', () => {
 			if (patterns.toString().includes('.gitignore')) {
 				return [`${MOCK_CWD}/excluded/.gitignore`]
 			}
-			return [`${MOCK_CWD}/included.txt`, `${MOCK_CWD}/excluded/file.txt`, `${MOCK_CWD}/excluded/.gitignore`]
+			return [
+				`${MOCK_CWD}/included.txt`,
+				`${MOCK_CWD}/excluded/file.txt`,
+				`${MOCK_CWD}/excluded/.gitignore`,
+			]
 		})
 
 		const result = await processFiles(configWithExclude)
