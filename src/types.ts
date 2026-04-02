@@ -24,4 +24,5 @@ export interface YankConfigCtor {
 	langMap?: Record<string, string>
 	workspaceDirect?: string
 	workspaceRecursive?: boolean
+	maxSize?: number
 }

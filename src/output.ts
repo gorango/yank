@@ -25,7 +25,9 @@ export async function generateOutput(files: ProcessedFile[], config: YankConfig)
 				? `\`${DEFAULT_CODE_TEMPLATE}\``
 				: config.codeTemplate
 
-		const codeBlock = template.replace('{language}', language).replace('{content}', file.content)
+		const codeBlock = template
+			.replace('{language}', language)
+			.replace('{content}', file.content)
 
 		outputChunks.push(`${header}\n${codeBlock}`)
 	}

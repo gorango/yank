@@ -17,6 +17,7 @@ function createMockConfig(overrides: Partial<YankConfig> = {}) {
 		preview: false,
 		langMap: {},
 		workspaceRecursive: false,
+		maxSize: 0,
 		...overrides,
 	}
 }

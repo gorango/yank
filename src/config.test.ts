@@ -28,14 +28,17 @@ describe('YankConfig.init', () => {
 		fsPromisesMock.readFile.mockResolvedValue(JSON.stringify({ version: '1.2.3' }))
 		fsPromisesMock.stat.mockImplementation(async (p: fs.PathLike) => {
 			const pathStr = p.toString()
-			if (pathStr === 'src' || pathStr === 'docs/') return { isDirectory: () => true } as fs.Stats
+			if (pathStr === 'src' || pathStr === 'docs/')
+				return { isDirectory: () => true } as fs.Stats
 
 			if (pathStr === 'README.md') return { isDirectory: () => false } as fs.Stats
 
 			throw new Error(`ENOENT: no such file or directory, stat '${pathStr}'`)
 		})
 
-		vi.mocked(fg.isDynamicPattern).mockImplementation((pattern: string) => pattern.includes('*'))
+		vi.mocked(fg.isDynamicPattern).mockImplementation((pattern: string) =>
+			pattern.includes('*'),
+		)
 
 		argvSpy = vi.spyOn(process, 'argv', 'get')
 	})
@@ -87,24 +90,38 @@ describe('YankConfig.init', () => {
 	})
 
 	it('should correctly combine positional arguments and --include flags', async () => {
-		argvSpy.mockReturnValue(['node', 'yank', 'src', '--include', 'README.md', '--include', 'lib/**/*.ts'])
+		argvSpy.mockReturnValue([
+			'node',
+			'yank',
+			'src',
+			'--include',
+			'README.md',
+			'--include',
+			'lib/**/*.ts',
+		])
 		const config = await YankConfig.init()
 		expect(config.include).toEqual(['src/**/*', 'README.md', 'lib/**/*.ts'])
 	})
 
 	it('should throw error for invalid glob patterns with unclosed brackets', async () => {
 		argvSpy.mockReturnValue(['node', 'yank', '--include', 'src/[unclosed'])
-		await expect(YankConfig.init()).rejects.toThrow('Invalid glob pattern: src/[unclosed. Unclosed character class.')
+		await expect(YankConfig.init()).rejects.toThrow(
+			'Invalid glob pattern: src/[unclosed. Unclosed character class.',
+		)
 	})
 
 	it('should throw error for invalid glob patterns with unclosed braces', async () => {
 		argvSpy.mockReturnValue(['node', 'yank', '--include', 'src/{unclosed'])
-		await expect(YankConfig.init()).rejects.toThrow('Invalid glob pattern: src/{unclosed. Unclosed brace expansion.')
+		await expect(YankConfig.init()).rejects.toThrow(
+			'Invalid glob pattern: src/{unclosed. Unclosed brace expansion.',
+		)
 	})
 
 	it('should throw error for invalid glob patterns with unclosed parentheses', async () => {
 		argvSpy.mockReturnValue(['node', 'yank', '--include', 'src/(unclosed'])
-		await expect(YankConfig.init()).rejects.toThrow('Invalid glob pattern: src/(unclosed. Unclosed group.')
+		await expect(YankConfig.init()).rejects.toThrow(
+			'Invalid glob pattern: src/(unclosed. Unclosed group.',
+		)
 	})
 
 	it('should throw error for invalid langMap value in argv', async () => {
@@ -116,7 +133,9 @@ describe('YankConfig.init', () => {
 
 	it('should throw error for invalid langMap value type in argv', async () => {
 		argvSpy.mockReturnValue(['node', 'yank', '--lang-map', '{"LICENSE":123}'])
-		await expect(YankConfig.init()).rejects.toThrow("Configuration error: langMap value for 'LICENSE' must be a string")
+		await expect(YankConfig.init()).rejects.toThrow(
+			"Configuration error: langMap value for 'LICENSE' must be a string",
+		)
 	})
 })
 
@@ -140,7 +159,9 @@ describe('YankConfig.init with config file loading', () => {
 		const fsPromisesMock = vi.mocked(await import('node:fs/promises'))
 		fsPromisesMock.readFile.mockResolvedValue(JSON.stringify({ version: '1.2.3' }))
 
-		vi.mocked(fg.isDynamicPattern).mockImplementation((pattern: string) => pattern.includes('*'))
+		vi.mocked(fg.isDynamicPattern).mockImplementation((pattern: string) =>
+			pattern.includes('*'),
+		)
 
 		argvSpy = vi.spyOn(process, 'argv', 'get')
 	})
@@ -199,7 +220,9 @@ describe('YankConfig.init with config file loading', () => {
 			filepath: '/project/yank.toml',
 		})
 
-		await expect(YankConfig.init()).rejects.toThrow('Configuration error: include must be an array of strings')
+		await expect(YankConfig.init()).rejects.toThrow(
+			'Configuration error: include must be an array of strings',
+		)
 	})
 
 	it('should throw error for invalid exclude in config file', async () => {
@@ -210,7 +233,9 @@ describe('YankConfig.init with config file loading', () => {
 			filepath: '/project/yank.toml',
 		})
 
-		await expect(YankConfig.init()).rejects.toThrow('Configuration error: exclude must be an array of strings')
+		await expect(YankConfig.init()).rejects.toThrow(
+			'Configuration error: exclude must be an array of strings',
+		)
 	})
 
 	it('should throw error for invalid fileTemplate in config file', async () => {
@@ -221,7 +246,9 @@ describe('YankConfig.init with config file loading', () => {
 			filepath: '/project/yank.toml',
 		})
 
-		await expect(YankConfig.init()).rejects.toThrow('Configuration error: fileTemplate must be a string')
+		await expect(YankConfig.init()).rejects.toThrow(
+			'Configuration error: fileTemplate must be a string',
+		)
 	})
 
 	it('should throw error for invalid codeTemplate in config file', async () => {
@@ -232,7 +259,9 @@ describe('YankConfig.init with config file loading', () => {
 			filepath: '/project/yank.toml',
 		})
 
-		await expect(YankConfig.init()).rejects.toThrow('Configuration error: codeTemplate must be a string')
+		await expect(YankConfig.init()).rejects.toThrow(
+			'Configuration error: codeTemplate must be a string',
+		)
 	})
 
 	it('should throw error for invalid clip in config file', async () => {
@@ -243,7 +272,9 @@ describe('YankConfig.init with config file loading', () => {
 			filepath: '/project/yank.toml',
 		})
 
-		await expect(YankConfig.init()).rejects.toThrow('Configuration error: clip must be a boolean')
+		await expect(YankConfig.init()).rejects.toThrow(
+			'Configuration error: clip must be a boolean',
+		)
 	})
 
 	it('should throw error for invalid debug in config file', async () => {
@@ -254,7 +285,9 @@ describe('YankConfig.init with config file loading', () => {
 			filepath: '/project/yank.toml',
 		})
 
-		await expect(YankConfig.init()).rejects.toThrow('Configuration error: debug must be a boolean')
+		await expect(YankConfig.init()).rejects.toThrow(
+			'Configuration error: debug must be a boolean',
+		)
 	})
 
 	it('should throw error for invalid langMap in config file', async () => {
@@ -265,7 +298,9 @@ describe('YankConfig.init with config file loading', () => {
 			filepath: '/project/yank.toml',
 		})
 
-		await expect(YankConfig.init()).rejects.toThrow('Configuration error: langMap must be an object')
+		await expect(YankConfig.init()).rejects.toThrow(
+			'Configuration error: langMap must be an object',
+		)
 	})
 
 	it('should throw error for invalid langMap value in config file', async () => {
@@ -289,7 +324,9 @@ describe('YankConfig.init with config file loading', () => {
 			filepath: '/project/yank.toml',
 		})
 
-		await expect(YankConfig.init()).rejects.toThrow("Configuration error: langMap value for 'LICENSE' must be a string")
+		await expect(YankConfig.init()).rejects.toThrow(
+			"Configuration error: langMap value for 'LICENSE' must be a string",
+		)
 	})
 
 	it('should include binary file extension patterns in excludes', async () => {
