@@ -49,13 +49,13 @@ yank
 
 Customize how `yank` works with these options:
 
-| Option            | Shortcut | What it Does                                                                             | Default                                    |
-| ----------------- | -------- | ---------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `--clip`          | `-c`     | Copies output to your clipboard instead of printing it.                                  | Off                                        |
-| `--include`       | `-i`     | Specify file patterns to include (e.g., `src/*.ts`). Ignored if you list paths directly. | All files (`**/*`)                         |
-| `--exclude`       | `-x`     | Skip specific file patterns (adds to defaults like `node_modules`).                      | None                                       |
-| `--name-template` | `-H`     | Customize the header for each file.                                                      | `--- {filePath} ---`                       |
-| `--code-template` | `-B`     | Set the format for code blocks.                                                          | <code>`{language}<br>{content}<br>`</code> |
+| Option            | Shortcut | What it Does                                                                             | Default                           |
+| ----------------- | -------- | ---------------------------------------------------------------------------------------- | --------------------------------- |
+| `--clip`          | `-c`     | Copies output to your clipboard instead of printing it.                                  | Off                               |
+| `--include`       | `-i`     | Specify file patterns to include (e.g., `src/*.ts`). Ignored if you list paths directly. | All files (`**/*`)                |
+| `--exclude`       | `-x`     | Skip specific file patterns (adds to defaults like `node_modules`).                      | None                              |
+| `--name-template` | `-H`     | Customize the header for each file.                                                      | `--- {filePath} ---`              |
+| `--code-template` | `-B`     | Set the format for code blocks.                                                          | ` ```{language}\n{content}\n``` ` |
 
 | `--config` | `-C` | Use a custom config file. | Auto-detected |
 | `--lang-map` | | Override file language detection (e.g., `'{"LICENSE":"text"}'`). | None |
@@ -99,13 +99,13 @@ languageOverrides = { LICENSE = "text" }
 
 Your config file can include these settings:
 
-| Field          | Type             | What it Does                                    | Example                                  |
-| -------------- | ---------------- | ----------------------------------------------- | ---------------------------------------- |
-| `clip`         | Boolean          | Copy output to clipboard instead of printing.   | `true`                                   |
-| `include`      | Array of strings | File patterns to include.                       | `["src/**/*.ts", "README.md"]`           |
-| `exclude`      | Array of strings | File patterns to skip.                          | `["**/*.test.ts"]`                       |
-| `fileTemplate` | String           | File header format (must include `{filePath}`). | `"## {filePath}"`                        |
-| `codeTemplate` | String           | Code block format (must include `{content}`).   | <code>"`{language}\n{content}\n`"</code> |
+| Field          | Type             | What it Does                                    | Example                           |
+| -------------- | ---------------- | ----------------------------------------------- | --------------------------------- |
+| `clip`         | Boolean          | Copy output to clipboard instead of printing.   | `true`                            |
+| `include`      | Array of strings | File patterns to include.                       | `["src/**/*.ts", "README.md"]`    |
+| `exclude`      | Array of strings | File patterns to skip.                          | `["**/*.test.ts"]`                |
+| `fileTemplate` | String           | File header format (must include `{filePath}`). | `"## {filePath}"`                 |
+| `codeTemplate` | String           | Code block format (must include `{content}`).   | `"```{language}\n{content}\n```"` |
 
 | `debug` | Boolean | Enable detailed logs. | `false` |
 | `languageOverrides` | Object | Override language detection for files. | `{"LICENSE": "text"}` |
@@ -119,12 +119,12 @@ Your config file can include these settings:
 2. **File Names**: Knows special files like `Dockerfile` or `Makefile`.
 3. **Shebang Lines**: Checks the first line for things like `#!/bin/bash`.
 
-### Supported File Types
+### 150+ Supported File Types
 
 - **Web**: `.js`, `.ts`, `.html`, `.css`, `.json`, `.md`, `.yaml`, etc.
 - **Backend**: `.py`, `.go`, `.java`, `.php`, `.cs`, `.cpp`, etc.
 - **Shell/Config**: `.sh`, `.bash`, `.dockerfile`, `.tf`, etc.
-- **Data**: `.sql`, `.graphql`
+- **Data**: `.sql`, `.graphql`, `.csv`, etc.
 - **Other**: `.r`, `.dart`, `.hs`, `.clj`, etc.
 
 ### Override Language Detection

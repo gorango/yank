@@ -1,3 +1,15 @@
+## v1.4.0 - 2026-04-02
+
+- Fixed pnpm-workspace.yaml parsing by using proper YAML parser instead of JSON.parse
+- Expanded language mappings from ~50 to ~140 entries (added zig, nim, wasm, proto, glsl, diff, tex, julia, ocaml, gradle, and common files like LICENSE, CHANGELOG, README)
+- Fixed .env file detection to use `dotenv` instead of `ini`
+- Added `--max-size` option to skip files over a specified byte threshold
+- Refactored config.ts init() into focused, testable functions
+- Fixed `--workspace-recursive` to be a boolean flag that requires `--workspace`
+- Added module guard to prevent main() from running when imported by tests
+- Added fatal error logging in main() catch handler instead of silently swallowing
+- Replaced mutable file counters with tagged union result pattern in file processor
+
 ## v1.3.2 - 2026-01-10
 
 - Renamed lib.ts and lib.test.ts to output.ts and output.test.ts for better code organization
