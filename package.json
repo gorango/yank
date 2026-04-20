@@ -36,12 +36,12 @@
 	"dependencies": {
 		"@inquirer/prompts": "^8.3.2",
 		"byte-size": "^9.0.1",
+		"cac": "^7.0.0",
 		"clipboardy": "^5.3.1",
 		"cosmiconfig": "^9.0.1",
 		"cosmiconfig-toml-loader": "^1.0.0",
 		"fast-glob": "^3.3.3",
-		"ignore": "^7.0.5",
-		"yargs": "^18.0.0"
+		"ignore": "^7.0.5"
 	},
 	"devDependencies": {
 		"@types/byte-size": "^8.1.2",

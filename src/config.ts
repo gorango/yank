@@ -5,8 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { cosmiconfig } from 'cosmiconfig'
 import { loadToml } from 'cosmiconfig-toml-loader'
 import fg from 'fast-glob'
-import yargs from 'yargs'
-import { hideBin } from 'yargs/helpers'
+import cac from 'cac'
 import {
 	BINARY_FILE_EXTENSIONS,
 	DEFAULT_CODE_TEMPLATE,
@@ -127,89 +126,64 @@ function validateFileConfig(fileConfig: Record<string, unknown>) {
 	}
 }
 
-function buildYargs(fileConfig: Record<string, unknown>, appVersion: string) {
-	return yargs(hideBin(process.argv))
-		.usage('Usage: $0 [paths...] [options]')
-		.option('clip', {
-			alias: 'c',
-			type: 'boolean',
-			description: 'Output to clipboard.',
-			default: false,
-		})
-		.option('include', {
-			alias: 'i',
-			type: 'array',
-			string: true,
-			description: 'Glob patterns for files to include. Combined with any positional paths.',
-			default: [],
-		})
-		.option('exclude', {
-			alias: 'x',
-			type: 'array',
-			string: true,
-			description: 'Glob patterns to exclude.',
-			default: [],
-		})
-		.option('file-template', {
-			alias: 'H',
-			type: 'string',
-			description: 'Template for header (var: {filePath})',
-			default: '--- {filePath} ---',
-		})
-		.option('code-template', {
-			alias: 'B',
-			type: 'string',
-			description: 'Template for body (vars: {language}, {content})',
+function buildCli(_version: string) {
+	const cli = cac(moduleName)
+
+	cli.usage('Usage: $0 [paths...] [options]')
+	cli.option('-c, --clip', 'Output to clipboard.', {
+		default: false,
+	})
+	cli.option(
+		'-i, --include [patterns...]',
+		'Glob patterns for files to include. Combined with any positional paths.',
+		{
+			type: [] as string[],
+			default: [] as string[],
+		},
+	)
+	cli.option('-x, --exclude [patterns...]', 'Glob patterns to exclude.', {
+		type: [] as string[],
+		default: [] as string[],
+	})
+	cli.option('-H, --file-template <template>', 'Template for header (var: {filePath})', {
+		default: '--- {filePath} ---',
+	})
+	cli.option(
+		'-B, --code-template <template>',
+		'Template for body (vars: {language}, {content})',
+		{
 			default: DEFAULT_CODE_TEMPLATE,
-		})
-		.option('config', {
-			alias: 'C',
-			type: 'string',
-			description: 'Path to a custom config.',
-		})
-		.option('debug', {
-			type: 'boolean',
-			description: 'Enable debug output.',
+		},
+	)
+	cli.option('-h, --help', 'Display this message.')
+	cli.option('-v, --version', 'Display version number.')
+	cli.option('-C, --config <path>', 'Path to a custom config.')
+	cli.option('--debug', 'Enable debug output.', {
+		default: false,
+	})
+	cli.option(
+		'--lang-map <json>',
+		'JSON string of language overrides (e.g., \'{"LICENSE":"text"}\')',
+	)
+	cli.option('-p, --preview', 'Enable interactive preview mode to select files.', {
+		default: false,
+	})
+	cli.option(
+		'-w, --workspace <path>',
+		'Path to package in monorepo to yank with direct workspace dependencies.',
+	)
+	cli.option(
+		'-r, --workspace-recursive',
+		'Resolve workspace dependencies recursively when using --workspace.',
+		{
 			default: false,
-		})
-		.option('lang-map', {
-			type: 'string',
-			description: 'JSON string of language overrides (e.g., \'{"LICENSE":"text"}\')',
-			coerce: (value: string) => {
-				try {
-					return JSON.parse(value)
-				} catch {
-					throw new Error('Invalid JSON for --lang-map')
-				}
-			},
-		})
-		.option('preview', {
-			alias: 'p',
-			type: 'boolean',
-			description: 'Enable interactive preview mode to select files.',
-			default: false,
-		})
-		.option('workspace', {
-			alias: 'w',
-			type: 'string',
-			description: 'Path to package in monorepo to yank with direct workspace dependencies.',
-		})
-		.option('workspace-recursive', {
-			alias: 'r',
-			type: 'boolean',
-			description: 'Resolve workspace dependencies recursively when using --workspace.',
-			default: false,
-		})
-		.option('max-size', {
-			type: 'number',
-			description: 'Skip files larger than this size (in bytes, 0 = no limit).',
-			default: 0,
-		})
-		.config(fileConfig)
-		.help()
-		.alias('h', 'help')
-		.version(appVersion)
-		.alias('v', 'version')
+		},
+	)
+	cli.option('--max-size <bytes>', 'Skip files larger than this size (in bytes, 0 = no limit).', {
+		default: 0,
+	})
+
+	return cli
 }
 
 async function expandDirectoryPatterns(patterns: string[]): Promise<string[]> {
@@ -324,17 +298,11 @@ export class YankConfig {
 	}
 
 	public static async init(): Promise<YankConfig> {
-		const preParse = yargs(hideBin(process.argv))
-			.option('config', {
-				alias: 'C',
-				type: 'string',
-				description: 'Path to a custom config.',
-			})
-			.help(false)
-			.version(false)
-			.parseSync()
+		const preCli = cac(moduleName)
+		preCli.option('-C, --config <path>', 'Path to a custom config.')
 
-		const customConfigPath = preParse.config as string | undefined
+		const preParsed = preCli.parse(process.argv, { run: false })
+		const customConfigPath = preParsed.options.config as string | undefined
 		const explorer = createExplorer()
 
 		const [appVersion, configFileResult] = await Promise.all([
@@ -351,10 +319,39 @@ export class YankConfig {
 		const fileConfig = configFileResult?.config || {}
 		validateFileConfig(fileConfig)
 
-		const argv = await buildYargs(fileConfig, appVersion).parse()
+		const cli = buildCli(appVersion) // version is passed for future use
 
-		const positionalArgs = argv._.map(String)
-		const rawIncludePatterns = [...positionalArgs, ...argv.include]
+		for (const [key, value] of Object.entries(fileConfig)) {
+			if (key !== 'langMap') {
+				cli.option(`--${key}`, '', { default: value })
+			}
+		}
+
+		const argv = cli.parse(process.argv)
+
+		if (argv.options.help) {
+			cli.outputHelp()
+			process.exit(0)
+		}
+
+		if (argv.options.version) {
+			console.log(appVersion)
+			process.exit(0)
+		}
+
+		const cliOptions = argv.options as Record<string, unknown>
+
+		let langMap: Record<string, string> = {}
+		if (argv.options.langMap) {
+			try {
+				langMap = JSON.parse(argv.options.langMap as string)
+			} catch {
+				throw new Error('Invalid JSON for --lang-map')
+			}
+		}
+
+		const positionalArgs = argv.args.map(String)
+		const rawIncludePatterns = [...positionalArgs, ...((cliOptions.include as string[]) ?? [])]
 		validateGlobPatterns(rawIncludePatterns)
 
 		const includes =
@@ -363,28 +360,35 @@ export class YankConfig {
 				: ['**/*']
 
 		const binaryIgnorePatterns = BINARY_FILE_EXTENSIONS.map((ext) => `**/*.${ext}`)
-		const excludes = [...DEFAULT_EXCLUDE_PATTERNS, ...binaryIgnorePatterns, ...argv.exclude]
+		const excludes = [
+			...DEFAULT_EXCLUDE_PATTERNS,
+			...binaryIgnorePatterns,
+			...((cliOptions.exclude as string[]) ?? []),
+		]
 
-		if (argv.langMap) {
-			validateLangMapValues(argv.langMap as Record<string, unknown>)
+		if (langMap) {
+			validateLangMapValues(langMap)
 		}
 
-		const { workspaceDirect, workspaceRecursive } = resolveWorkspaceArgs(argv)
+		const { workspaceDirect, workspaceRecursive } = resolveWorkspaceArgs({
+			w: cliOptions.workspace as string | undefined,
+			workspaceRecursive: cliOptions.workspaceRecursive as boolean | undefined,
+		})
 
 		const config = new YankConfig({
-			clip: argv.clip,
+			clip: cliOptions.clip as boolean,
 			include: includes,
 			exclude: excludes,
-			fileTemplate: argv.fileTemplate,
-			codeTemplate: argv.codeTemplate,
+			fileTemplate: cliOptions.fileTemplate as string,
+			codeTemplate: cliOptions.codeTemplate as string,
 			stats: true,
 			tokens: true,
-			debug: argv.debug,
-			preview: argv.preview,
-			langMap: argv.langMap || {},
+			debug: cliOptions.debug as boolean,
+			preview: cliOptions.preview as boolean,
+			langMap: langMap || {},
 			workspaceDirect,
 			workspaceRecursive,
-			maxSize: argv.maxSize,
+			maxSize: cliOptions.maxSize as number,
 		})
 
 		validateTemplates(config.fileTemplate, config.codeTemplate)
