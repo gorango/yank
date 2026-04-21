@@ -245,11 +245,7 @@ describe('processFiles with nested .gitignore', () => {
 
 		// The root .gitignore excludes contents of temp/, so temp/file.txt is excluded.
 		// The deep negation overrides this for the specific nested file.
-		expect(paths).toEqual([
-			'.gitignore',
-			`${deepPath}/.gitignore`,
-			`${deepPath}/temp/nested.txt`,
-		])
+		expect(paths).toEqual(['.gitignore', `${deepPath}/.gitignore`, `${deepPath}/temp/nested.txt`])
 
 		expect(result.stats.totalFiles).toBe(3)
 		expect(result.stats.processedFiles).toBe(3)

@@ -186,8 +186,7 @@ export async function getLanguage(filePath: string): Promise<string> {
 				if (firstLine.includes('lua')) return 'lua'
 				if (firstLine.includes('fish')) return 'fish'
 				if (firstLine.includes('zsh')) return 'zsh'
-				if (firstLine.includes('powershell') || firstLine.includes('pwsh'))
-					return 'powershell'
+				if (firstLine.includes('powershell') || firstLine.includes('pwsh')) return 'powershell'
 				if (firstLine.includes('deno')) return 'typescript'
 				if (firstLine.includes('bun')) return 'javascript'
 			}

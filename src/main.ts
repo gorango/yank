@@ -100,8 +100,7 @@ export async function main() {
 
 const isMainModule =
 	process.argv[1] &&
-	(process.argv[1] === fileURLToPath(import.meta.url) ||
-		process.argv[1].endsWith('/dist/main.mjs'))
+	(process.argv[1] === fileURLToPath(import.meta.url) || process.argv[1].endsWith('/dist/main.mjs'))
 
 if (isMainModule) {
 	main().catch((error) => {

@@ -63,8 +63,7 @@ describe('workspace-resolver', () => {
 		it('parses pnpm-workspace.yaml', async () => {
 			// biome-ignore lint/suspicious/noExplicitAny: Parameter type is complex union in fs.readFile
 			mockFs.readFile.mockImplementation((p: any) => {
-				if (p === '/root/pnpm-workspace.yaml')
-					return Promise.resolve('packages:\n  - packages/*\n')
+				if (p === '/root/pnpm-workspace.yaml') return Promise.resolve('packages:\n  - packages/*\n')
 				if (p === '/root/packages/a/package.json')
 					return Promise.resolve(JSON.stringify({ name: 'pkg-a' }))
 				if (p === '/root/packages/b/package.json')
@@ -155,9 +154,9 @@ describe('workspace-resolver', () => {
 			)
 			const packages = new Map()
 
-			await expect(
-				resolveWorkspaceDeps('packages/a', packages, '/root', false),
-			).rejects.toThrow('Unresolved workspace dependency: missing')
+			await expect(resolveWorkspaceDeps('packages/a', packages, '/root', false)).rejects.toThrow(
+				'Unresolved workspace dependency: missing',
+			)
 		})
 
 		it('handles cycles', async () => {

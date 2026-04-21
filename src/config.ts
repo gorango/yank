@@ -148,13 +148,9 @@ function buildCli(_version: string) {
 	cli.option('-H, --file-template <template>', 'Template for header (var: {filePath})', {
 		default: '--- {filePath} ---',
 	})
-	cli.option(
-		'-B, --code-template <template>',
-		'Template for body (vars: {language}, {content})',
-		{
-			default: DEFAULT_CODE_TEMPLATE,
-		},
-	)
+	cli.option('-B, --code-template <template>', 'Template for body (vars: {language}, {content})', {
+		default: DEFAULT_CODE_TEMPLATE,
+	})
 	cli.option('-h, --help', 'Display this message.')
 	cli.option('-v, --version', 'Display version number.')
 	cli.option('-C, --config <path>', 'Path to a custom config.')
@@ -230,9 +226,7 @@ function resolveWorkspaceArgs(argv: { w?: unknown; workspaceRecursive?: unknown 
 		return { workspaceDirect: w, workspaceRecursive: recursive ?? false }
 	}
 	if (recursive) {
-		throw new Error(
-			'Configuration error: --workspace-recursive requires --workspace to be set.',
-		)
+		throw new Error('Configuration error: --workspace-recursive requires --workspace to be set.')
 	}
 	return { workspaceRecursive: false }
 }
@@ -255,14 +249,10 @@ async function validateWorkspacePath(workspaceDirect: string) {
 
 function validateTemplates(fileTemplate: string, codeTemplate: string) {
 	if (!fileTemplate.includes('{filePath}')) {
-		throw new Error(
-			'Configuration error: --file-template must include the {filePath} placeholder.',
-		)
+		throw new Error('Configuration error: --file-template must include the {filePath} placeholder.')
 	}
 	if (!codeTemplate.includes('{content}')) {
-		throw new Error(
-			'Configuration error: --code-template must include the {content} placeholder.',
-		)
+		throw new Error('Configuration error: --code-template must include the {content} placeholder.')
 	}
 }
 
@@ -311,9 +301,7 @@ export class YankConfig {
 		])
 
 		if (customConfigPath && !configFileResult) {
-			throw new Error(
-				`Configuration file not found or failed to load at: ${customConfigPath}`,
-			)
+			throw new Error(`Configuration file not found or failed to load at: ${customConfigPath}`)
 		}
 
 		const fileConfig = configFileResult?.config || {}
@@ -355,9 +343,7 @@ export class YankConfig {
 		validateGlobPatterns(rawIncludePatterns)
 
 		const includes =
-			rawIncludePatterns.length > 0
-				? await expandDirectoryPatterns(rawIncludePatterns)
-				: ['**/*']
+			rawIncludePatterns.length > 0 ? await expandDirectoryPatterns(rawIncludePatterns) : ['**/*']
 
 		const binaryIgnorePatterns = BINARY_FILE_EXTENSIONS.map((ext) => `**/*.${ext}`)
 		const excludes = [

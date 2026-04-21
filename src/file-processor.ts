@@ -113,17 +113,14 @@ export async function processFiles(
 		.sort()
 
 	if (config.debug) {
-		console.debug(
-			`Files found: ${allFiles.length}. After ignore rules: ${filteredPaths.length}.`,
-		)
+		console.debug(`Files found: ${allFiles.length}. After ignore rules: ${filteredPaths.length}.`)
 	}
 
 	const results = await Promise.all(
 		filteredPaths.map(async (absPath) => {
 			try {
 				if (!(await isFileUnderMaxSize(absPath, config.maxSize))) {
-					if (config.debug)
-						console.debug(`Skipped (too large): ${path.relative(cwd, absPath)}`)
+					if (config.debug) console.debug(`Skipped (too large): ${path.relative(cwd, absPath)}`)
 					return { success: false as const, reason: 'maxSize' }
 				}
 				const content = await fs.readFile(absPath, 'utf-8')
