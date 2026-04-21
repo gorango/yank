@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer'
 import process from 'node:process'
-import { fileURLToPath } from 'node:url'
+
 import { inspect } from 'node:util'
 import byteSize from 'byte-size'
 import clipboard from 'clipboardy'
@@ -98,11 +98,7 @@ export async function main() {
 	}
 }
 
-const isMainModule =
-	process.argv[1] &&
-	(process.argv[1] === fileURLToPath(import.meta.url) || process.argv[1].endsWith('/dist/main.mjs'))
-
-if (isMainModule) {
+if (process.env.__YANK_CLI__) {
 	main().catch((error) => {
 		console.error(`Fatal error: ${error instanceof Error ? error.message : 'Unknown error'}`)
 		process.exit(1)

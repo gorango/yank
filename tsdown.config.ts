@@ -6,6 +6,6 @@ export default defineConfig({
 	clean: true,
 	minify: true,
 	banner: {
-		js: '#!/usr/bin/env node',
+		js: '#!/usr/bin/env node\nprocess.env.__YANK_CLI__ = "1"',
 	},
 })
