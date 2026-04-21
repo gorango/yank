@@ -1,3 +1,8 @@
+## v1.4.1 - 2026-04-21
+
+- Replaced yargs (~127KB, many deps) with cac (~4KB, no deps) CLI library
+- Reimplemented config validation and CLI option parsing using cac v7 API
+
 ## v1.4.0 - 2026-04-02
 
 - Fixed pnpm-workspace.yaml parsing by using proper YAML parser instead of JSON.parse
