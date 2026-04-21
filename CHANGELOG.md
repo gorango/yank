@@ -1,3 +1,8 @@
+## v1.4.2 - 2026-04-21
+
+- Fixed CLI not executing when invoked via shebang by using environment
+  variable detection instead of process.argv[1] check
+
 ## v1.4.1 - 2026-04-21
 
 - Replaced yargs (~127KB, many deps) with cac (~4KB, no deps) CLI library
